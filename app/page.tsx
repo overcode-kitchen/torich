@@ -1,8 +1,10 @@
 'use client'
 
 import { Plus } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 export default function Home() {
+  const router = useRouter()
   const mockItems = [
     { id: 1, title: 'S&P500', amount: '10만', period: '3년', expected: '5천' },
     { id: 2, title: '테슬라', amount: '20만', period: '5년', expected: '1.5억' },
@@ -15,7 +17,10 @@ export default function Home() {
         <h1 className="font-bold text-coolgray-900 text-xl">
           티끌모아 태산
         </h1>
-        <button className="px-4 py-1.5 text-sm font-medium text-coolgray-800 hover:text-brand-600 transition-colors">
+        <button 
+          onClick={() => router.push('/login')}
+          className="px-4 py-1.5 text-sm font-medium text-coolgray-800 hover:text-brand-600 transition-colors"
+        >
           로그인
         </button>
       </header>
