@@ -11,11 +11,17 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-coolgray-25">
-      <div className="max-w-md mx-auto px-4 py-4 space-y-6">
-        {/* 상단 헤더 */}
-        <h1 className="text-center font-bold text-coolgray-900 py-4 text-xl">
+      {/* 상단 헤더 */}
+      <header className="h-[52px] bg-white border-b border-coolgray-100 flex items-center justify-center relative px-4">
+        <h1 className="font-bold text-coolgray-900 text-xl">
           티끌모아 태산
         </h1>
+        <button className="absolute right-4 px-4 py-1.5 text-sm font-medium text-coolgray-900 hover:text-brand-600 transition-colors">
+          로그인
+        </button>
+      </header>
+
+      <div className="max-w-md mx-auto px-4 py-4 space-y-6">
 
         {/* 상단 요약 카드 */}
         <div className="bg-white rounded-3xl shadow-md p-8">
