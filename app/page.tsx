@@ -1,65 +1,68 @@
-import Image from "next/image";
+'use client'
+
+import { createClient } from '@supabase/supabase-js'
+import { useEffect, useState } from 'react'
 
 export default function Home() {
+  const [dbStatus, setDbStatus] = useState('⏳ DB 연결 확인 중...')
+  const [envCheck, setEnvCheck] = useState('확인 중...')
+
+  useEffect(() => {
+    // 1. 환경변수 확인
+    const hasUrl = !!process.env.NEXT_PUBLIC_SUPABASE_URL
+    const hasKey = !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    setEnvCheck(hasUrl && hasKey ? '✅ 환경변수 있음' : '❌ 환경변수 없음 (Vercel 설정 확인 필요)')
+
+    // 2. 실제 DB 통신 시도
+    const checkDB = async () => {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      const supabase = createClient(supabaseUrl, supabaseKey)
+      // records 테이블에서 아무거나 조회 시도
+      const { data, error } = await supabase.from('records').select('*').limit(1)
+      
+      if (error) {
+        console.error(error)
+        setDbStatus(`❌ 연결 실패: ${error.message}`)
+      } else {
+        setDbStatus('✅ Supabase DB 연결 성공! (데이터 조회 가능)')
+      }
+    }
+
+    checkDB()
+  }, [])
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="flex min-h-screen flex-col items-center justify-center p-8 gap-4 bg-slate-50">
+      <h1 className="text-3xl font-bold text-slate-900">티클모아태산 서버 점검</h1>
+      
+      <div className="p-6 bg-white rounded-xl shadow-lg border border-slate-200 w-full max-w-md space-y-4">
+        <div className="flex justify-between items-center">
+          <span className="font-semibold text-slate-600">Vercel 배포 상태</span>
+          <span className="text-green-600 font-bold">🟢 정상</span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        
+        <div className="flex justify-between items-center">
+          <span className="font-semibold text-slate-600">환경변수(Key)</span>
+          <span className={envCheck.includes('✅') ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
+            {envCheck}
+          </span>
         </div>
-      </main>
-    </div>
-  );
+
+        <div className="flex justify-between items-center">
+          <span className="font-semibold text-slate-600">DB 연결</span>
+          <span className={dbStatus.includes('✅') ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
+            {dbStatus.includes('✅') ? '✅ 연결됨' : '❌ 실패'}
+          </span>
+        </div>
+        
+        {/* 실패 시 에러 메시지 크게 보여주기 */}
+        {!dbStatus.includes('✅') && !dbStatus.includes('⏳') && (
+          <div className="p-3 bg-red-50 text-red-600 text-sm rounded-md mt-4">
+            {dbStatus}
+          </div>
+        )}
+      </div>
+    </main>
+  )
 }
