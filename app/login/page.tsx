@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { Loader2, ArrowLeft } from 'lucide-react'
+import { IconLoader2, IconArrowLeft } from '@tabler/icons-react'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -45,7 +45,7 @@ export default function LoginPage() {
         className="absolute top-4 left-4 p-2 text-coolgray-700 hover:text-coolgray-900 transition-colors"
         aria-label="뒤로가기"
       >
-        <ArrowLeft className="w-6 h-6" />
+        <IconArrowLeft className="w-6 h-6" />
       </button>
 
       <div className="w-full max-w-xs">
@@ -62,7 +62,7 @@ export default function LoginPage() {
         >
           {isLoading ? (
             <>
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <IconLoader2 className="w-5 h-5 animate-spin" />
               <span>연결 중...</span>
             </>
           ) : (

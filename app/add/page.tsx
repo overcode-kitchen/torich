@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
+import { IconArrowLeft } from '@tabler/icons-react'
 
 export default function AddInvestmentPage() {
   const router = useRouter()
@@ -35,7 +35,7 @@ export default function AddInvestmentPage() {
           className="p-2 text-coolgray-700 hover:text-coolgray-900 transition-colors"
           aria-label="뒤로가기"
         >
-          <ArrowLeft className="w-6 h-6" />
+          <IconArrowLeft className="w-6 h-6" />
         </button>
       </header>
 
