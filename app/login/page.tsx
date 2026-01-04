@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/utils/supabase/client'
 import { Loader2, ArrowLeft } from 'lucide-react'
 
 export default function LoginPage() {
@@ -13,25 +13,26 @@ export default function LoginPage() {
     try {
       setIsLoading(true)
       
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      const supabase = createClient(supabaseUrl, supabaseKey)
+      const supabase = createClient()
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline', // 중요: 리프레시 토큰 및 PKCE 사용 유도
+            prompt: 'consent',
+          },
+          skipBrowserRedirect: false, // 브라우저 리다이렉트 사용
         },
       })
-
-      if (error) {
-        console.error('로그인 오류:', error)
-        alert('로그인에 실패했습니다. 다시 시도해주세요.')
-        setIsLoading(false)
-      }
+      
+      if (error) throw error
+      
     } catch (error) {
-      console.error('로그인 오류:', error)
-      alert('로그인에 실패했습니다. 다시 시도해주세요.')
+      console.error('Login Error:', error)
+      alert('로그인 에러가 발생했습니다. 콘솔을 확인해주세요.')
+    } finally {
       setIsLoading(false)
     }
   }
