@@ -50,7 +50,10 @@ export default function Home() {
         </div>
 
         {/* 투자 목록 추가하기 버튼 */}
-        <button className="w-full bg-brand-600 text-white font-bold rounded-2xl py-4 shadow-lg flex items-center justify-center gap-2 hover:bg-brand-700 transition-colors">
+        <button 
+          onClick={() => router.push('/add')}
+          className="w-full bg-brand-600 text-white font-bold rounded-2xl py-4 shadow-lg flex items-center justify-center gap-2 hover:bg-brand-700 transition-colors"
+        >
           <Plus className="w-5 h-5" />
           투자 목록 추가하기
         </button>
