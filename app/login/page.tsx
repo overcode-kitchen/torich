@@ -52,8 +52,10 @@ export default function LoginPage() {
       })
 
       if (!signInError) {
-        router.refresh()
-        window.location.href = '/'
+        // 세션 설정 대기
+        await new Promise(resolve => setTimeout(resolve, 500))
+        // 현재 origin 명시적 사용 (IP 기반 URL 대응)
+        window.location.href = `${window.location.origin}/`
         return
       }
 
@@ -65,8 +67,10 @@ export default function LoginPage() {
 
       if (signUpError) throw signUpError
 
-      router.refresh()
-      window.location.href = '/'
+      // 세션 설정 대기
+      await new Promise(resolve => setTimeout(resolve, 500))
+      // 현재 origin 명시적 사용 (IP 기반 URL 대응)
+      window.location.href = `${window.location.origin}/`
 
     } catch (error: any) {
       console.error('테스트 로그인 실패:', error)
