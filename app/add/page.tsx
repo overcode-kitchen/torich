@@ -1,20 +1,102 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { IconArrowLeft } from '@tabler/icons-react'
+import { IconArrowLeft, IconLoader2 } from '@tabler/icons-react'
+import { createClient } from '@/utils/supabase/client'
 
 export default function AddInvestmentPage() {
   const router = useRouter()
   const [stockName, setStockName] = useState('')
   const [monthlyAmount, setMonthlyAmount] = useState('')
   const [period, setPeriod] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    // 로그인한 유저 정보 가져오기
+    const getUser = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setUserId(user.id)
+      } else {
+        // 로그인하지 않은 경우 로그인 페이지로 리다이렉트
+        router.push('/login')
+      }
+    }
+    getUser()
+  }, [router])
+
+  // 복리 계산 함수
+  const calculateFinalAmount = (monthlyAmount: number, periodYears: number): number => {
+    const annualRate = 10 // 연 수익률 10%
+    const monthlyRate = annualRate / 12 / 100 // 월 이율
+    const totalMonths = periodYears * 12 // 총 개월 수
+
+    // 기납입액 기준 월복리 계산: 월납입금 * ((1 + r)^n - 1) / r * (1 + r)
+    const finalAmount = monthlyAmount * ((Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate) * (1 + monthlyRate)
+    
+    return Math.round(finalAmount)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: 저장 로직 구현
-    console.log({ stockName, monthlyAmount, period })
-    router.back()
+
+    // 유효성 검사
+    if (!stockName.trim()) {
+      alert('종목명을 입력해주세요.')
+      return
+    }
+    if (!monthlyAmount || parseInt(monthlyAmount) <= 0) {
+      alert('월 투자액을 입력해주세요.')
+      return
+    }
+    if (!period || parseInt(period) <= 0) {
+      alert('투자 기간을 입력해주세요.')
+      return
+    }
+    if (!userId) {
+      alert('로그인이 필요합니다.')
+      router.push('/login')
+      return
+    }
+
+    try {
+      setIsSubmitting(true)
+
+      const supabase = createClient()
+      const monthlyAmountNum = parseInt(monthlyAmount)
+      const periodYearsNum = parseInt(period)
+      const finalAmount = calculateFinalAmount(monthlyAmountNum, periodYearsNum)
+
+      // Supabase에 데이터 저장
+      const { error } = await supabase
+        .from('records')
+        .insert({
+          user_id: userId,
+          title: stockName.trim(),
+          monthly_amount: monthlyAmountNum,
+          period_years: periodYearsNum,
+          annual_rate: 10,
+          final_amount: finalAmount,
+        })
+
+      if (error) {
+        console.error('저장 오류:', error)
+        alert('저장에 실패했습니다. 다시 시도해주세요.')
+        return
+      }
+
+      // 성공 시 메인으로 이동
+      router.refresh()
+      router.push('/')
+    } catch (error) {
+      console.error('저장 오류:', error)
+      alert('저장에 실패했습니다. 다시 시도해주세요.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   // 숫자만 입력받는 핸들러
@@ -83,9 +165,17 @@ export default function AddInvestmentPage() {
         {/* 저장하기 버튼 */}
         <button
           onClick={handleSubmit}
-          className="w-full bg-coolgray-800 text-white font-medium rounded-xl py-4 hover:bg-coolgray-900 transition-colors"
+          disabled={isSubmitting}
+          className="w-full bg-coolgray-800 text-white font-medium rounded-xl py-4 hover:bg-coolgray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          저장하기
+          {isSubmitting ? (
+            <>
+              <IconLoader2 className="w-5 h-5 animate-spin" />
+              <span>저장 중...</span>
+            </>
+          ) : (
+            '저장하기'
+          )}
         </button>
       </div>
     </main>
