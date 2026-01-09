@@ -7,6 +7,10 @@ import { createClient } from '@/utils/supabase/client'
 import { sendGAEvent } from '@next/third-parties/google'
 
 // 검색 결과 (간단한 정보만)
+<<<<<<< HEAD
+=======
+// 커밋테스트
+>>>>>>> 75bcbaf36337398e1853e39b9a3cf20bdf2d7af0
 interface SearchResult {
   symbol: string
   name: string
@@ -64,7 +68,11 @@ export default function AddInvestmentPage() {
 
   // 주식 검색 (Debounce 적용)
   useEffect(() => {
+<<<<<<< HEAD
     // 선택된 종목이 있으면 검색하지 않음 (드롭다운 재오픈 방지)
+=======
+    // 선택된 종목이 있으면 검색하지 않음
+>>>>>>> 75bcbaf36337398e1853e39b9a3cf20bdf2d7af0
     if (selectedStock) {
       return
     }
@@ -73,6 +81,11 @@ export default function AddInvestmentPage() {
     if (!stockName.trim() || stockName.trim().length < 2) {
       setSearchResults([])
       setShowDropdown(false)
+      return
+    }
+
+    // 이미 종목이 선택된 상태면 검색하지 않음 (드롭다운 재오픈 방지)
+    if (selectedStock && stockName === selectedStock.name) {
       return
     }
 
