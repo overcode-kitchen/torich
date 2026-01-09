@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { IconArrowLeft, IconLoader2 } from '@tabler/icons-react'
 import { createClient } from '@/utils/supabase/client'
+import { sendGAEvent } from '@next/third-parties/google'
 
 export default function AddInvestmentPage() {
   const router = useRouter()
@@ -12,6 +13,17 @@ export default function AddInvestmentPage() {
   const [period, setPeriod] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
+
+  // 체류 시간 추적
+  useEffect(() => {
+    const startTime = Date.now()
+
+    return () => {
+      const endTime = Date.now()
+      const timeSpent = Math.round((endTime - startTime) / 1000) // 초 단위로 변환
+      sendGAEvent('event', 'time_spent_add_page', { value: timeSpent })
+    }
+  }, [])
 
   useEffect(() => {
     // 로그인한 유저 정보 가져오기
@@ -87,6 +99,9 @@ export default function AddInvestmentPage() {
         alert('저장에 실패했습니다. 다시 시도해주세요.')
         return
       }
+
+      // 저장 완료 이벤트 전송
+      sendGAEvent('event', 'click_add_investment_complete')
 
       // 성공 시 메인으로 이동
       router.refresh()

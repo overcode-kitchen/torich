@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import { IconPlus, IconLogout, IconUser, IconLoader2 } from '@tabler/icons-react'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { formatCurrency } from '@/lib/utils'
+import { sendGAEvent } from '@next/third-parties/google'
 
 interface Record {
   id: string
@@ -266,7 +267,10 @@ export default function Home() {
         {/* 투자 목록 추가하기 버튼 */}
 
         <button 
-          onClick={() => router.push('/add')}
+          onClick={() => {
+            sendGAEvent('event', 'click_add_investment_start')
+            router.push('/add')
+          }}
           className="w-full bg-brand-600 text-white font-bold rounded-2xl py-4 shadow-lg flex items-center justify-center gap-2 hover:bg-brand-700 transition-colors"
         >
           <IconPlus className="w-5 h-5" />
@@ -330,7 +334,10 @@ export default function Home() {
                 아직 등록된 투자가 없어요
               </p>
               <button 
-                onClick={() => router.push('/add')}
+                onClick={() => {
+                  sendGAEvent('event', 'click_add_investment_start')
+                  router.push('/add')
+                }}
                 className="bg-brand-600 text-white font-bold rounded-2xl py-4 px-8 shadow-lg flex items-center justify-center gap-2 hover:bg-brand-700 transition-colors"
               >
                 <IconPlus className="w-5 h-5" />
