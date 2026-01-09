@@ -6,6 +6,13 @@ import { IconArrowLeft, IconLoader2 } from '@tabler/icons-react'
 import { createClient } from '@/utils/supabase/client'
 import { sendGAEvent } from '@next/third-parties/google'
 
+interface StockSearchResult {
+  symbol: string
+  name: string
+  averageRate: number
+  currentPrice: number
+}
+
 export default function AddInvestmentPage() {
   const router = useRouter()
   const [stockName, setStockName] = useState('')
@@ -13,6 +20,13 @@ export default function AddInvestmentPage() {
   const [period, setPeriod] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
+  
+  // 주식 검색 관련 상태
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchResults, setSearchResults] = useState<StockSearchResult[]>([])
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [selectedStock, setSelectedStock] = useState<StockSearchResult | null>(null)
+  const [annualRate, setAnnualRate] = useState(10) // 기본 10%
 
   // 체류 시간 추적
   useEffect(() => {
@@ -40,16 +54,77 @@ export default function AddInvestmentPage() {
     getUser()
   }, [router])
 
-  // 복리 계산 함수
-  const calculateFinalAmount = (monthlyAmount: number, periodYears: number): number => {
-    const annualRate = 10 // 연 수익률 10%
-    const monthlyRate = annualRate / 12 / 100 // 월 이율
+  // 주식 검색 (Debounce 적용)
+  useEffect(() => {
+    // 입력이 없거나 너무 짧으면 검색하지 않음
+    if (!stockName.trim() || stockName.trim().length < 2) {
+      setSearchResults([])
+      setShowDropdown(false)
+      return
+    }
+
+    // Debounce: 0.5초 후 검색 실행
+    const timer = setTimeout(async () => {
+      try {
+        setIsSearching(true)
+        setShowDropdown(false)
+        
+        const response = await fetch(`/api/stock?query=${encodeURIComponent(stockName.trim())}`)
+        const data = await response.json()
+        
+        if (response.ok && data.symbol) {
+          // 단일 결과를 배열로 변환
+          setSearchResults([data])
+          setShowDropdown(true)
+        } else {
+          setSearchResults([])
+          setShowDropdown(false)
+        }
+      } catch (error) {
+        console.error('주식 검색 오류:', error)
+        setSearchResults([])
+        setShowDropdown(false)
+      } finally {
+        setIsSearching(false)
+      }
+    }, 500)
+
+    // Cleanup: 컴포넌트 unmount 또는 stockName 변경 시 타이머 제거
+    return () => clearTimeout(timer)
+  }, [stockName])
+
+  // 외부 클릭 시 드롭다운 닫기
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowDropdown(false)
+    }
+
+    if (showDropdown) {
+      document.addEventListener('click', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showDropdown])
+
+  // 복리 계산 함수 (동적 수익률 적용)
+  const calculateFinalAmount = (monthlyAmount: number, periodYears: number, rate: number): number => {
+    const monthlyRate = rate / 12 / 100 // 월 이율
     const totalMonths = periodYears * 12 // 총 개월 수
 
     // 기납입액 기준 월복리 계산: 월납입금 * ((1 + r)^n - 1) / r * (1 + r)
     const finalAmount = monthlyAmount * ((Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate) * (1 + monthlyRate)
     
     return Math.round(finalAmount)
+  }
+
+  // 종목 선택 핸들러
+  const handleSelectStock = (stock: StockSearchResult) => {
+    setStockName(stock.name)
+    setSelectedStock(stock)
+    setAnnualRate(stock.averageRate)
+    setShowDropdown(false)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,7 +155,8 @@ export default function AddInvestmentPage() {
       const supabase = createClient()
       const monthlyAmountNum = parseInt(monthlyAmount)
       const periodYearsNum = parseInt(period)
-      const finalAmount = calculateFinalAmount(monthlyAmountNum, periodYearsNum)
+      // 검색으로 선택한 수익률 또는 기본값(10%) 사용
+      const finalAmount = calculateFinalAmount(monthlyAmountNum, periodYearsNum, annualRate)
 
       // Supabase에 데이터 저장
       const { error } = await supabase
@@ -90,7 +166,7 @@ export default function AddInvestmentPage() {
           title: stockName.trim(),
           monthly_amount: monthlyAmountNum,
           period_years: periodYearsNum,
-          annual_rate: 10,
+          annual_rate: annualRate, // 실제 조회된 수익률 저장
           final_amount: finalAmount,
         })
 
@@ -149,14 +225,56 @@ export default function AddInvestmentPage() {
 
         {/* 입력 폼 */}
         <form onSubmit={handleSubmit} className="space-y-4 mb-8">
-          {/* 종목명 입력 */}
-          <input
-            type="text"
-            value={stockName}
-            onChange={(e) => setStockName(e.target.value)}
-            placeholder="S&P 500"
-            className="w-full bg-white rounded-2xl p-5 text-coolgray-900 placeholder-coolgray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
-          />
+          {/* 종목명 입력 (검색 기능 포함) */}
+          <div className="relative">
+            <input
+              type="text"
+              value={stockName}
+              onChange={(e) => {
+                setStockName(e.target.value)
+                setSelectedStock(null) // 입력 변경 시 선택 초기화
+              }}
+              placeholder="S&P 500"
+              className="w-full bg-white rounded-2xl p-5 pr-12 text-coolgray-900 placeholder-coolgray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              autoComplete="off"
+            />
+            
+            {/* 로딩 스피너 */}
+            {isSearching && (
+              <div className="absolute right-5 top-1/2 -translate-y-1/2">
+                <IconLoader2 className="w-5 h-5 animate-spin text-brand-600" />
+              </div>
+            )}
+
+            {/* 드롭다운 검색 결과 */}
+            {showDropdown && searchResults.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-coolgray-100 overflow-hidden z-10">
+                {searchResults.map((stock) => (
+                  <button
+                    key={stock.symbol}
+                    type="button"
+                    onClick={() => handleSelectStock(stock)}
+                    className="w-full px-5 py-4 text-left hover:bg-coolgray-50 transition-colors border-b border-coolgray-100 last:border-b-0"
+                  >
+                    <div className="font-medium text-coolgray-900">
+                      {stock.name}
+                    </div>
+                    <div className="text-sm text-coolgray-500 mt-1">
+                      {stock.symbol} · 연평균 {stock.averageRate}%
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 선택된 종목 안내 문구 */}
+          {selectedStock && (
+            <div className="text-sm text-brand-600 font-medium flex items-center gap-1">
+              <span>📊</span>
+              <span>지난 10년 평균 수익률 {selectedStock.averageRate}%가 적용되었어요!</span>
+            </div>
+          )}
 
           {/* 월 투자액 입력 */}
           <input

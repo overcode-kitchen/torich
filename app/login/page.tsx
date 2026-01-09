@@ -37,6 +37,49 @@ export default function LoginPage() {
     }
   }
 
+  // 테스트 계정 로그인
+  const handleTestLogin = async () => {
+    try {
+      setIsLoading(true)
+      const supabase = createClient()
+      const TEST_EMAIL = 'test@test.com' // 가장 무난한 이메일
+      const TEST_PASSWORD = 'password1234' // 6자리 이상 필수
+
+      // 1. 로그인 시도
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: TEST_EMAIL,
+        password: TEST_PASSWORD,
+      })
+
+      if (!signInError) {
+        // 세션 설정 대기
+        await new Promise(resolve => setTimeout(resolve, 500))
+        // 현재 origin 명시적 사용 (IP 기반 URL 대응)
+        window.location.href = `${window.location.origin}/`
+        return
+      }
+
+      // 2. 실패 시 회원가입 (자동 로그인됨)
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: TEST_EMAIL,
+        password: TEST_PASSWORD,
+      })
+
+      if (signUpError) throw signUpError
+
+      // 세션 설정 대기
+      await new Promise(resolve => setTimeout(resolve, 500))
+      // 현재 origin 명시적 사용 (IP 기반 URL 대응)
+      window.location.href = `${window.location.origin}/`
+
+    } catch (error: any) {
+      console.error('테스트 로그인 실패:', error)
+      alert('테스트 계정 생성 실패: ' + error.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <main className="min-h-screen bg-coolgray-25 flex items-center justify-center px-4 relative">
       {/* 뒤로가기 버튼 */}
@@ -94,6 +137,27 @@ export default function LoginPage() {
             </>
           )}
         </button>
+
+        {/* 테스트 로그인 버튼 (개발 환경에서만 표시) */}
+        {process.env.NODE_ENV === 'development' && (
+          <button
+            onClick={handleTestLogin}
+            disabled={isLoading}
+            className="w-full bg-gray-100 text-gray-700 font-medium rounded-xl py-4 px-6 flex items-center justify-center gap-2 hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-3"
+          >
+            {isLoading ? (
+              <>
+                <IconLoader2 className="w-5 h-5 animate-spin" />
+                <span>로그인 중...</span>
+              </>
+            ) : (
+              <>
+                <span>🐿️</span>
+                <span>테스트 계정으로 입장</span>
+              </>
+            )}
+          </button>
+        )}
       </div>
     </main>
   )
