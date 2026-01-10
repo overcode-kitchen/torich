@@ -7,10 +7,7 @@ import { createClient } from '@/utils/supabase/client'
 import { sendGAEvent } from '@next/third-parties/google'
 
 // 검색 결과 (간단한 정보만)
-<<<<<<< HEAD
-=======
-// 커밋테스트
->>>>>>> 75bcbaf36337398e1853e39b9a3cf20bdf2d7af0
+
 interface SearchResult {
   symbol: string
   name: string
