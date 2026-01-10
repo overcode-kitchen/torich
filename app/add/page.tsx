@@ -6,6 +6,7 @@ import { IconArrowLeft, IconLoader2 } from '@tabler/icons-react'
 import { createClient } from '@/utils/supabase/client'
 import { sendGAEvent } from '@next/third-parties/google'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 // 검색 결과 (간단한 정보만)
 interface SearchResult {
@@ -37,6 +38,12 @@ export default function AddInvestmentPage() {
   const [selectedStock, setSelectedStock] = useState<StockDetail | null>(null)
   const [annualRate, setAnnualRate] = useState(10) // 기본 10%
   const [market, setMarket] = useState<'KR' | 'US'>('KR') // 기본값: 국내 주식
+  
+  // 직접 입력 모달 관련 상태
+  const [isManualModalOpen, setIsManualModalOpen] = useState(false)
+  const [manualStockName, setManualStockName] = useState('')
+  const [manualRate, setManualRate] = useState('')
+  const [isManualInput, setIsManualInput] = useState(false) // 직접 입력 모드 플래그
 
   // 체류 시간 추적
   useEffect(() => {
@@ -66,6 +73,11 @@ export default function AddInvestmentPage() {
 
   // 주식 검색 (Debounce 적용)
   useEffect(() => {
+    // Guard Clause: 직접 입력 모드일 때는 검색하지 않음
+    if (isManualInput) {
+      return
+    }
+
     // 선택된 종목이 있으면 검색하지 않음 (드롭다운 재오픈 방지)
     if (selectedStock) {
       return
@@ -93,7 +105,7 @@ export default function AddInvestmentPage() {
           setShowDropdown(true)
         } else {
           setSearchResults([])
-          setShowDropdown(false)
+          setShowDropdown(true) // 검색 결과 없을 때도 드롭다운 열어서 "직접 입력하기" 버튼 표시
         }
       } catch (error) {
         console.error('주식 검색 오류:', error)
@@ -106,7 +118,7 @@ export default function AddInvestmentPage() {
 
     // Cleanup: 컴포넌트 unmount 또는 stockName/market 변경 시 타이머 제거
     return () => clearTimeout(timer)
-  }, [stockName, selectedStock, market])
+  }, [stockName, selectedStock, market, isManualInput])
 
   // 외부 클릭 시 드롭다운 닫기
   useEffect(() => {
@@ -174,6 +186,29 @@ export default function AddInvestmentPage() {
     } finally {
       setIsSearching(false)
     }
+  }
+
+  // 직접 입력 확인 핸들러
+  const handleManualConfirm = () => {
+    if (!manualStockName.trim()) {
+      alert('종목 이름을 입력해주세요.')
+      return
+    }
+    if (!manualRate || parseFloat(manualRate) <= 0) {
+      alert('예상 수익률을 입력해주세요.')
+      return
+    }
+
+    // 메인 폼에 적용 (순서 중요: isManualInput을 먼저 설정)
+    setIsManualInput(true) // 1. 직접 입력 모드 활성화 (검색 방지)
+    setStockName(manualStockName) // 2. 종목명 설정
+    setAnnualRate(parseFloat(manualRate)) // 3. 수익률 설정
+    setSelectedStock(null) // 4. 선택 상태 초기화
+    
+    // 모달 닫기 및 초기화
+    setIsManualModalOpen(false)
+    setManualStockName('')
+    setManualRate('')
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -304,6 +339,7 @@ export default function AddInvestmentPage() {
               type="text"
               value={stockName}
               onChange={(e) => {
+                setIsManualInput(false) // 사용자가 다시 타이핑하면 검색 모드로 전환
                 setStockName(e.target.value)
                 setSelectedStock(null) // 입력 변경 시 선택 초기화
                 setAnnualRate(10) // 기본값으로 리셋
@@ -344,6 +380,28 @@ export default function AddInvestmentPage() {
                 ))}
               </div>
             )}
+
+            {/* 검색 결과 없음 - 직접 입력 안내 */}
+            {showDropdown && searchResults.length === 0 && !isSearching && stockName.trim().length >= 2 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-coolgray-100 overflow-hidden z-10">
+                <div className="px-5 py-4 text-center">
+                  <p className="text-sm text-coolgray-500 mb-3">
+                    찾으시는 종목이 없나요?
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsManualModalOpen(true)
+                      setManualStockName(stockName)
+                      setShowDropdown(false)
+                    }}
+                    className="w-full bg-brand-600 text-white font-medium py-2 px-4 rounded-xl hover:bg-brand-700 transition-colors"
+                  >
+                    직접 입력하기
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 선택된 종목 안내 문구 */}
@@ -351,6 +409,14 @@ export default function AddInvestmentPage() {
             <div className="text-sm text-brand-600 font-medium flex items-center gap-1">
               <span>📊</span>
               <span>지난 10년 평균 수익률 {selectedStock.averageRate}%가 적용되었어요!</span>
+            </div>
+          )}
+          
+          {/* 직접 입력한 종목 안내 문구 */}
+          {isManualInput && stockName && (
+            <div className="text-sm text-purple-600 font-medium flex items-center gap-1">
+              <span>✏️</span>
+              <span>직접 입력한 수익률 {annualRate}%가 적용됩니다</span>
             </div>
           )}
 
@@ -394,6 +460,72 @@ export default function AddInvestmentPage() {
           )}
         </button>
       </div>
+
+      {/* 직접 입력 모달 */}
+      <Dialog open={isManualModalOpen} onOpenChange={setIsManualModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>투자할 종목 직접 입력</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* 종목명 입력 */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-coolgray-900">
+                종목 이름
+              </label>
+              <input
+                type="text"
+                value={manualStockName}
+                onChange={(e) => setManualStockName(e.target.value)}
+                placeholder="예: 나만의 포트폴리오"
+                className="w-full bg-white border border-coolgray-200 rounded-xl p-3 text-coolgray-900 placeholder-coolgray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+            </div>
+
+            {/* 예상 수익률 입력 */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-coolgray-900">
+                예상 연평균 수익률 (%)
+              </label>
+              <input
+                type="number"
+                value={manualRate}
+                onChange={(e) => setManualRate(e.target.value)}
+                placeholder="10"
+                step="0.1"
+                min="0"
+                max="100"
+                className="w-full bg-white border border-coolgray-200 rounded-xl p-3 text-coolgray-900 placeholder-coolgray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+              <p className="text-xs text-coolgray-500 leading-relaxed">
+                💡 잘 모르겠다면 S&P500 평균인 <strong>10%</strong>를 입력해보세요. 
+                보수적으로 잡고 싶다면 예금 금리 <strong>3%</strong>를 추천해요.
+              </p>
+            </div>
+          </div>
+
+          {/* 버튼 영역 */}
+          <div className="flex gap-3">
+            <button
+              onClick={() => {
+                setIsManualModalOpen(false)
+                setManualStockName('')
+                setManualRate('')
+              }}
+              className="flex-1 bg-coolgray-100 text-coolgray-700 font-medium py-3 rounded-xl hover:bg-coolgray-200 transition-colors"
+            >
+              취소
+            </button>
+            <button
+              onClick={handleManualConfirm}
+              className="flex-1 bg-brand-600 text-white font-medium py-3 rounded-xl hover:bg-brand-700 transition-colors"
+            >
+              확인
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }
