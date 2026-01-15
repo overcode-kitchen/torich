@@ -57,9 +57,7 @@ export async function GET(request: Request) {
     }
 
     // CAGR 계산 (연평균 수익률)
-    // 기초 가격 (가장 오래된 데이터)
     const initialPrice = historicalData[0].close
-    // 기말 가격 (가장 최근 데이터)
     const finalPrice = historicalData[historicalData.length - 1].close
 
     if (!initialPrice || !finalPrice) {
@@ -84,6 +82,9 @@ export async function GET(request: Request) {
     // 현재 가격 조회
     const quote = await yahooFinance.quote(symbol) as any
     const currentPrice = quote.regularMarketPrice || finalPrice
+
+    // 디버그 로그: CAGR 계산 핵심 정보
+    console.log(`[Stock API] ${symbol} | 기간: ${yearsElapsed.toFixed(1)}년 | 가격: ${initialPrice.toFixed(2)} → ${finalPrice.toFixed(2)} | CAGR: ${averageRate}%`)
 
     // 응답 포맷 (Supabase에서 조회한 name 사용)
     return NextResponse.json({
