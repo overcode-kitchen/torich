@@ -20,7 +20,6 @@ export default function Home() {
   const [selectedYear, setSelectedYear] = useState<number>(1) // 기본값: 1년
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null) // 삭제 대상 ID
   const [isDeleting, setIsDeleting] = useState(false) // 삭제 중 상태
-  const [activeItemId, setActiveItemId] = useState<string | null>(null) // 슬라이딩 활성화된 아이템 ID
   const [detailItem, setDetailItem] = useState<Investment | null>(null) // 상세 보기 아이템
 
   const supabase = createClient()
@@ -181,7 +180,6 @@ export default function Home() {
     } finally {
       setIsDeleting(false)
       setDeleteTargetId(null) // 모달 닫기
-      setActiveItemId(null) // 슬라이드 닫기
     }
   }
 
@@ -344,24 +342,7 @@ export default function Home() {
                   <InvestmentItem
                     key={item.id}
                     item={item}
-                    isActive={activeItemId === item.id}
-                    onToggle={() => {
-                      if (activeItemId === item.id) {
-                        // 이미 활성화된 아이템을 다시 클릭하면 상세 보기
-                        setDetailItem(item)
-                        setActiveItemId(null)
-                      } else {
-                        setActiveItemId(item.id)
-                      }
-                    }}
-                    onEdit={() => {
-                      console.log('TODO: 수정 기능 구현')
-                      setActiveItemId(null)
-                    }}
-                    onDelete={() => {
-                      setDeleteTargetId(item.id)
-                      setActiveItemId(null)
-                    }}
+                    onClick={() => setDetailItem(item)}
                     calculateFutureValue={calculateSimulatedValue}
                   />
                 ))}
@@ -393,6 +374,14 @@ export default function Home() {
           item={detailItem}
           isOpen={!!detailItem}
           onClose={() => setDetailItem(null)}
+          onEdit={() => {
+            console.log('TODO: 수정 기능 구현')
+            setDetailItem(null)
+          }}
+          onDelete={() => {
+            setDeleteTargetId(detailItem.id)
+            setDetailItem(null)
+          }}
           calculateFutureValue={calculateSimulatedValue}
         />
       )}
@@ -406,7 +395,6 @@ export default function Home() {
             onClick={() => {
               if (!isDeleting) {
                 setDeleteTargetId(null)
-                setActiveItemId(null)
               }
             }}
           />
@@ -426,10 +414,7 @@ export default function Home() {
             {/* 버튼 영역 */}
             <div className="flex gap-3 justify-end">
               <button
-                onClick={() => {
-                  setDeleteTargetId(null)
-                  setActiveItemId(null)
-                }}
+                onClick={() => setDeleteTargetId(null)}
                 disabled={isDeleting}
                 className="px-4 py-2 text-sm font-medium text-coolgray-700 bg-coolgray-100 rounded-md hover:bg-coolgray-200 transition-colors disabled:opacity-50"
               >

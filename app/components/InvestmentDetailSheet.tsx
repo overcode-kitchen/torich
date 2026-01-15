@@ -1,7 +1,7 @@
 'use client'
 
 import { formatCurrency } from '@/lib/utils'
-import { IconX } from '@tabler/icons-react'
+import { IconX, IconPencil, IconTrash } from '@tabler/icons-react'
 import { Investment, getStartDate } from '@/app/types/investment'
 import { 
   calculateEndDate, 
@@ -15,6 +15,8 @@ interface InvestmentDetailSheetProps {
   item: Investment
   isOpen: boolean
   onClose: () => void
+  onEdit: () => void
+  onDelete: () => void
   calculateFutureValue: (monthlyAmount: number, T: number, P: number, R: number) => number
 }
 
@@ -22,6 +24,8 @@ export default function InvestmentDetailSheet({
   item,
   isOpen,
   onClose,
+  onEdit,
+  onDelete,
   calculateFutureValue,
 }: InvestmentDetailSheetProps) {
   if (!isOpen) return null
@@ -150,6 +154,24 @@ export default function InvestmentDetailSheet({
                 {formatCurrency(calculatedFutureValue)}
               </span>
             </div>
+          </div>
+
+          {/* 수정/삭제 버튼 */}
+          <div className="flex gap-3 mt-6">
+            <button
+              onClick={onEdit}
+              className="flex-1 flex items-center justify-center gap-2 py-3 bg-coolgray-100 hover:bg-coolgray-200 text-coolgray-700 font-medium rounded-xl transition-colors"
+            >
+              <IconPencil className="w-4 h-4" />
+              수정
+            </button>
+            <button
+              onClick={onDelete}
+              className="flex-1 flex items-center justify-center gap-2 py-3 bg-red-50 hover:bg-red-100 text-red-600 font-medium rounded-xl transition-colors"
+            >
+              <IconTrash className="w-4 h-4" />
+              삭제
+            </button>
           </div>
         </div>
       </div>
