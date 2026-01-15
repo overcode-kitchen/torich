@@ -9,7 +9,7 @@ import { formatCurrency } from '@/lib/utils'
 // import { sendGAEvent } from '@next/third-parties/google'
 import { Investment } from '@/app/types/investment'
 import InvestmentItem from '@/app/components/InvestmentItem'
-import InvestmentDetailSheet from '@/app/components/InvestmentDetailSheet'
+import InvestmentDetailView from '@/app/components/InvestmentDetailView'
 
 export default function Home() {
   const router = useRouter()
@@ -368,12 +368,11 @@ export default function Home() {
           )}
       </div>
 
-      {/* 투자 상세 바텀시트 */}
+      {/* 투자 상세 페이지 */}
       {detailItem && (
-        <InvestmentDetailSheet
+        <InvestmentDetailView
           item={detailItem}
-          isOpen={!!detailItem}
-          onClose={() => setDetailItem(null)}
+          onBack={() => setDetailItem(null)}
           onEdit={() => {
             console.log('TODO: 수정 기능 구현')
             setDetailItem(null)
