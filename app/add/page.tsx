@@ -45,6 +45,11 @@ export default function AddInvestmentPage() {
   
   // 수익률 안내 모달 상태
   const [isRateHelpModalOpen, setIsRateHelpModalOpen] = useState(false)
+  
+  // 수익률 인라인 수정 상태
+  const [isRateEditing, setIsRateEditing] = useState(false)
+  const [editingRate, setEditingRate] = useState('')
+  const [originalSystemRate, setOriginalSystemRate] = useState<number | null>(null) // 시스템에서 가져온 원본 수익률
 
   // 체류 시간 추적
   useEffect(() => {
@@ -174,16 +179,19 @@ export default function AddInvestmentPage() {
         // 실제 상세 정보로 업데이트
         setSelectedStock(data)
         setAnnualRate(data.averageRate)
+        setOriginalSystemRate(data.averageRate) // 원본 시스템 수익률 저장
       } else {
         // 상세 정보 조회 실패 시 기본값 사용
         console.warn('상세 정보 조회 실패, 기본값 사용')
         setSelectedStock(null)
         setAnnualRate(10)
+        setOriginalSystemRate(null)
       }
     } catch (error) {
       console.error('상세 정보 조회 오류:', error)
       setSelectedStock(null)
       setAnnualRate(10)
+      setOriginalSystemRate(null)
     } finally {
       setIsSearching(false)
     }
@@ -386,6 +394,8 @@ export default function AddInvestmentPage() {
                 setStockName(e.target.value)
                 setSelectedStock(null) // 입력 변경 시 선택 초기화
                 setAnnualRate(10) // 기본값으로 리셋
+                setOriginalSystemRate(null) // 원본 수익률 리셋
+                setIsRateEditing(false) // 수정 모드 종료
               }}
               placeholder={market === 'KR' ? '삼성전자, TIGER...' : 'S&P 500, AAPL...'}
               className="w-full bg-white rounded-2xl p-5 pr-12 text-coolgray-900 placeholder-coolgray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -449,25 +459,155 @@ export default function AddInvestmentPage() {
             
             {/* 선택된 종목 안내 문구 - 종목 선택 필드 바로 아래 */}
             {selectedStock && (
-              <div className="text-sm text-brand-600 font-medium flex items-center gap-1 mt-1">
-                <span>📊</span>
-                <span>지난 10년 평균 수익률 {selectedStock.averageRate}%가 적용되었어요!</span>
-                <button
-                  type="button"
-                  onClick={() => setIsRateHelpModalOpen(true)}
-                  className="p-1.5 flex items-center justify-center bg-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 ml-1"
-                  aria-label="수익률 계산 방식 안내"
-                >
-                  <IconInfoCircle className="w-4 h-4" />
-                </button>
+              <div className="mt-2">
+                {isRateEditing ? (
+                  // 수정 모드
+                  <div className="flex items-center gap-2 bg-coolgray-50 rounded-xl p-3">
+                    <span className="text-sm text-coolgray-600">연 수익률</span>
+                    <input
+                      type="text"
+                      value={editingRate}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9.]/g, '')
+                        const parts = value.split('.')
+                        if (parts.length <= 2) setEditingRate(value)
+                      }}
+                      className="w-16 text-center bg-white border border-coolgray-200 rounded-lg px-2 py-1 text-coolgray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      placeholder="10"
+                      autoFocus
+                    />
+                    <span className="text-sm text-coolgray-600">%</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newRate = parseFloat(editingRate)
+                        if (newRate > 0) {
+                          setAnnualRate(newRate)
+                        }
+                        setIsRateEditing(false)
+                      }}
+                      className="px-3 py-1 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
+                    >
+                      확인
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsRateEditing(false)
+                        setEditingRate('')
+                      }}
+                      className="px-3 py-1 bg-coolgray-200 text-coolgray-700 text-sm font-medium rounded-lg hover:bg-coolgray-300 transition-colors"
+                    >
+                      취소
+                    </button>
+                  </div>
+                ) : (
+                  // 표시 모드
+                  <div className="text-sm font-medium flex items-center gap-1 flex-wrap">
+                    {originalSystemRate !== null && annualRate !== originalSystemRate ? (
+                      // 사용자가 수정한 경우
+                      <>
+                        <span className="text-purple-600">✏️</span>
+                        <span className="text-purple-600">
+                          수익률 {annualRate}%가 적용됩니다
+                        </span>
+                        <span className="text-xs text-coolgray-400 ml-1">
+                          (시스템: {originalSystemRate}%)
+                        </span>
+                      </>
+                    ) : (
+                      // 시스템 수익률 그대로
+                      <>
+                        <span className="text-brand-600">📊</span>
+                        <span className="text-brand-600">
+                          지난 10년 평균 수익률 {annualRate}%가 적용되었어요!
+                        </span>
+                      </>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setIsRateHelpModalOpen(true)}
+                      className="p-1 flex items-center justify-center bg-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      aria-label="수익률 계산 방식 안내"
+                    >
+                      <IconInfoCircle className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingRate(annualRate.toString())
+                        setIsRateEditing(true)
+                      }}
+                      className="px-2 py-0.5 bg-coolgray-100 text-coolgray-600 text-xs font-medium rounded-full hover:bg-coolgray-200 transition-colors ml-1"
+                    >
+                      수정
+                    </button>
+                  </div>
+                )}
               </div>
             )}
             
             {/* 직접 입력한 종목 안내 문구 - 종목 선택 필드 바로 아래 */}
             {isManualInput && stockName && (
-              <div className="text-sm text-purple-600 font-medium flex items-center gap-1 mt-1">
-                <span>✏️</span>
-                <span>직접 입력한 수익률 {annualRate}%가 적용됩니다</span>
+              <div className="mt-2">
+                {isRateEditing ? (
+                  // 수정 모드
+                  <div className="flex items-center gap-2 bg-coolgray-50 rounded-xl p-3">
+                    <span className="text-sm text-coolgray-600">연 수익률</span>
+                    <input
+                      type="text"
+                      value={editingRate}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9.]/g, '')
+                        const parts = value.split('.')
+                        if (parts.length <= 2) setEditingRate(value)
+                      }}
+                      className="w-16 text-center bg-white border border-coolgray-200 rounded-lg px-2 py-1 text-coolgray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      placeholder="10"
+                      autoFocus
+                    />
+                    <span className="text-sm text-coolgray-600">%</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newRate = parseFloat(editingRate)
+                        if (newRate > 0) {
+                          setAnnualRate(newRate)
+                        }
+                        setIsRateEditing(false)
+                      }}
+                      className="px-3 py-1 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
+                    >
+                      확인
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsRateEditing(false)
+                        setEditingRate('')
+                      }}
+                      className="px-3 py-1 bg-coolgray-200 text-coolgray-700 text-sm font-medium rounded-lg hover:bg-coolgray-300 transition-colors"
+                    >
+                      취소
+                    </button>
+                  </div>
+                ) : (
+                  // 표시 모드
+                  <div className="text-sm text-purple-600 font-medium flex items-center gap-1">
+                    <span>✏️</span>
+                    <span>직접 입력한 수익률 {annualRate}%가 적용됩니다</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingRate(annualRate.toString())
+                        setIsRateEditing(true)
+                      }}
+                      className="px-2 py-0.5 bg-coolgray-100 text-coolgray-600 text-xs font-medium rounded-full hover:bg-coolgray-200 transition-colors ml-1"
+                    >
+                      수정
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
