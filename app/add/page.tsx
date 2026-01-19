@@ -359,7 +359,20 @@ export default function AddInvestmentPage() {
         <div className="grid grid-cols-2 gap-1 bg-gray-100 p-1 rounded-lg mb-6">
           <button
             type="button"
-            onClick={() => setMarket('KR')}
+            onClick={() => {
+              if (market !== 'KR') {
+                setMarket('KR')
+                // 종목명과 수익률 관련 데이터 초기화
+                setStockName('')
+                setSelectedStock(null)
+                setAnnualRate(10)
+                setOriginalSystemRate(null)
+                setIsRateEditing(false)
+                setIsManualInput(false)
+                setSearchResults([])
+                setShowDropdown(false)
+              }
+            }}
             className={`py-2 px-4 text-sm font-medium rounded-md transition-colors ${
               market === 'KR'
                 ? 'bg-white text-coolgray-900 shadow-sm'
@@ -370,7 +383,20 @@ export default function AddInvestmentPage() {
           </button>
           <button
             type="button"
-            onClick={() => setMarket('US')}
+            onClick={() => {
+              if (market !== 'US') {
+                setMarket('US')
+                // 종목명과 수익률 관련 데이터 초기화
+                setStockName('')
+                setSelectedStock(null)
+                setAnnualRate(10)
+                setOriginalSystemRate(null)
+                setIsRateEditing(false)
+                setIsManualInput(false)
+                setSearchResults([])
+                setShowDropdown(false)
+              }
+            }}
             className={`py-2 px-4 text-sm font-medium rounded-md transition-colors ${
               market === 'US'
                 ? 'bg-white text-coolgray-900 shadow-sm'
