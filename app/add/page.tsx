@@ -26,6 +26,11 @@ export default function AddInvestmentPage() {
   const [stockName, setStockName] = useState('')
   const [monthlyAmount, setMonthlyAmount] = useState('')
   const [period, setPeriod] = useState('')
+  const [startDate, setStartDate] = useState(() => {
+    // 기본값: 오늘 날짜 (YYYY-MM-DD 형식)
+    const today = new Date()
+    return today.toISOString().split('T')[0]
+  })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   
@@ -262,6 +267,7 @@ export default function AddInvestmentPage() {
           period_years: periodYearsNum,
           annual_rate: annualRate, // 실제 조회된 수익률 저장
           final_amount: finalAmount,
+          start_date: startDate, // 투자 시작일
         })
 
       if (error) {
@@ -725,6 +731,22 @@ export default function AddInvestmentPage() {
                 -1
               </button>
             </div>
+          </div>
+
+          {/* 투자 시작일 입력 */}
+          <div>
+            <label className="block text-sm font-medium text-coolgray-700 mb-2">
+              투자 시작일
+            </label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full bg-white rounded-2xl p-5 text-coolgray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+            <p className="text-xs text-coolgray-400 mt-1">
+              투자를 시작한 날짜를 선택하세요. 기본값은 오늘입니다.
+            </p>
           </div>
         </form>
 
