@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { IconPlus, IconLogout, IconUser, IconLoader2 } from '@tabler/icons-react'
@@ -11,9 +11,6 @@ import { Investment } from '@/app/types/investment'
 import InvestmentItem from '@/app/components/InvestmentItem'
 import InvestmentDetailView from '@/app/components/InvestmentDetailView'
 
-// 컴포넌트 외부에서 supabase 클라이언트 생성 (싱글톤)
-const supabase = createClient()
-
 export default function Home() {
   const router = useRouter()
   const [user, setUser] = useState<SupabaseUser | null>(null)
@@ -23,7 +20,8 @@ export default function Home() {
   const [selectedYear, setSelectedYear] = useState<number>(1) // 기본값: 1년
   const [isDeleting, setIsDeleting] = useState(false) // 삭제 중 상태
   const [detailItem, setDetailItem] = useState<Investment | null>(null) // 상세 보기 아이템
-  const initRef = useRef(false) // 초기화 여부 추적
+
+  const supabase = createClient()
 
   // 시뮬레이션 기반 복리 계산 헬퍼 함수
   // T: 사용자가 선택한 연도, P: 투자 만기, R: 연이율
@@ -82,92 +80,55 @@ export default function Home() {
   }, [records, selectedYear])
 
   useEffect(() => {
-    // 이미 초기화된 경우 스킵
-    if (initRef.current) return
-    initRef.current = true
-
-    let mounted = true
-
-    // 타임아웃 설정 (3초 후 강제 로딩 종료)
-    const timeout = setTimeout(() => {
-      if (mounted && isLoading) {
-        console.warn('인증 확인 타임아웃 - 로딩 강제 종료')
-        setIsLoading(false)
-      }
-    }, 3000)
-
-    // 즉시 초기 세션 확인
-    const initAuth = async () => {
+    // 인증 상태 확인 및 데이터 로드
+    const checkAuthAndLoadData = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession()
-        
-        if (error) {
-          console.error('세션 확인 오류:', error)
-          if (mounted) setIsLoading(false)
-          return
-        }
-        
-        if (!mounted) return
-        
-        setUser(session?.user ?? null)
-        
-        if (session?.user) {
-          // 로그인한 경우 records 데이터 가져오기
-          const { data, error: fetchError } = await supabase
-            .from('records')
-            .select('*')
-            .order('created_at', { ascending: false })
-          
-          if (!fetchError && mounted) {
-            setRecords(data || [])
-          }
-        }
-      } catch (error) {
-        console.error('초기 인증 확인 오류:', error)
-      } finally {
-        clearTimeout(timeout)
-        if (mounted) {
-          setIsLoading(false)
-        }
-      }
-    }
+        const { data: { user } } = await supabase.auth.getUser()
+        setUser(user)
 
-    initAuth()
-
-    // 인증 상태 변경 감지
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return
-
-      // 로그인 시
-      if (event === 'SIGNED_IN') {
-        setUser(session?.user ?? null)
-        
-        if (session?.user) {
+        if (user) {
           // 로그인한 경우 records 데이터 가져오기
           const { data, error } = await supabase
             .from('records')
             .select('*')
             .order('created_at', { ascending: false })
-          
-          if (!error && mounted) {
+
+          if (error) {
+            console.error('데이터 조회 오류:', error)
+          } else {
             setRecords(data || [])
           }
         }
-      } 
-      // 토큰 갱신 시 (데이터 재로드 불필요)
-      else if (event === 'TOKEN_REFRESHED') {
-        setUser(session?.user ?? null)
+      } catch (error) {
+        console.error('인증 확인 오류:', error)
+      } finally {
+        setIsLoading(false)
       }
-      // 로그아웃 시
-      else if (event === 'SIGNED_OUT') {
-        setUser(null)
+    }
+
+    checkAuthAndLoadData()
+
+    // 인증 상태 변경 감지
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+      if (session?.user) {
+        // 로그인 시 데이터 다시 로드
+        supabase
+          .from('records')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .then(({ data, error }) => {
+            if (!error) {
+              setRecords(data || [])
+            }
+          })
+      } else {
+        // 로그아웃 시 데이터 초기화
         setRecords([])
       }
     })
 
     return () => {
-      mounted = false
-      clearTimeout(timeout)
       subscription.unsubscribe()
     }
   }, [])
