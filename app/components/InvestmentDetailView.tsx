@@ -2,9 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import { formatCurrency } from '@/lib/utils'
-import { IconArrowLeft, IconPencil, IconTrash, IconCheck, IconX, IconInfoCircle } from '@tabler/icons-react'
+import { IconArrowLeft, IconPencil, IconTrash, IconCheck, IconX, IconInfoCircle, IconDotsVertical } from '@tabler/icons-react'
 import { Investment, getStartDate, formatInvestmentDays } from '@/app/types/investment'
 import InvestmentDaysPickerSheet from '@/app/components/InvestmentDaysPickerSheet'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu'
 import { 
   calculateEndDate, 
   getElapsedText, 
@@ -149,9 +155,9 @@ export default function InvestmentDetailView({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-coolgray-25 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
       {/* 헤더 */}
-      <header className="h-[52px] flex items-center px-4">
+      <header className="h-[52px] flex items-center justify-between px-4 bg-white sticky top-0 z-10">
         <button
           onClick={onBack}
           className="p-2 text-coolgray-700 hover:text-coolgray-900 transition-colors"
@@ -159,63 +165,89 @@ export default function InvestmentDetailView({
         >
           <IconArrowLeft className="w-6 h-6" />
         </button>
+
+        {!isEditMode && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="p-2 text-coolgray-700 hover:text-coolgray-900 transition-colors"
+                aria-label="메뉴"
+              >
+                <IconDotsVertical className="w-6 h-6" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[140px]">
+              <DropdownMenuItem onClick={() => setIsEditMode(true)}>
+                수정하기
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setShowDeleteModal(true)}
+                className="text-red-600 focus:text-red-600"
+              >
+                삭제하기
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </header>
 
       {/* 콘텐츠 */}
-      <div className="max-w-md mx-auto px-4 py-6 space-y-6">
-        {/* 종목명 & 상태 카드 */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm">
-          <h2 className="text-2xl font-bold text-coolgray-900 mb-2">
-            {item.title}
-          </h2>
-          {isEditMode ? (
-            <p className="text-sm text-coolgray-400">종목명은 수정할 수 없습니다</p>
-          ) : (
-            <p className={`text-lg ${completed ? 'text-green-600' : 'text-brand-600'} font-semibold`}>
-              {completed ? '목표 달성! 🎉' : elapsedText}
-            </p>
+      <div className="max-w-md mx-auto px-4 pb-10">
+        <div className="divide-y divide-coolgray-100">
+          {/* 종목명 & 상태 */}
+          <section className="py-5">
+            <h2 className="text-2xl font-bold text-coolgray-900 mb-2">
+              {item.title}
+            </h2>
+            {isEditMode ? (
+              <p className="text-sm text-coolgray-400">종목명은 수정할 수 없습니다</p>
+            ) : (
+              <p className={`text-lg ${completed ? 'text-green-600' : 'text-brand-600'} font-semibold`}>
+                {completed ? '목표 달성! 🎉' : elapsedText}
+              </p>
+            )}
+          </section>
+
+          {/* 진행률 - 수정 모드에서는 숨김 */}
+          {!isEditMode && (
+            <section className="py-5">
+              <div className="flex justify-between text-sm text-coolgray-500 mb-3">
+                <span className="font-medium">진행률</span>
+                <span className="font-bold text-coolgray-900 text-lg">{progress}%</span>
+              </div>
+              <div className="w-full h-4 bg-coolgray-100 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    completed ? 'bg-green-500' : 'bg-brand-500'
+                  }`}
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-sm text-coolgray-400 mt-3">
+                <span>시작: {formatFullDate(startDate)}</span>
+                <span>종료: {formatFullDate(endDate)}</span>
+              </div>
+            </section>
           )}
-        </div>
 
-        {/* 프로그레스 카드 - 수정 모드에서는 숨김 */}
-        {!isEditMode && (
-          <div className="bg-white rounded-3xl p-6 shadow-sm">
-            <div className="flex justify-between text-sm text-coolgray-500 mb-3">
-              <span className="font-medium">진행률</span>
-              <span className="font-bold text-coolgray-900 text-lg">{progress}%</span>
+          {/* 만기 시 예상 금액 */}
+          <section className="py-5">
+            <h3 className="text-sm font-medium text-coolgray-500 mb-2">만기 시 예상 금액</h3>
+            <div className="text-3xl font-bold text-coolgray-900 mb-3">
+              {formatCurrency(calculatedFutureValue)}
             </div>
-            <div className="w-full h-4 bg-coolgray-100 rounded-full overflow-hidden">
-              <div 
-                className={`h-full rounded-full transition-all duration-500 ${
-                  completed ? 'bg-green-500' : 'bg-brand-500'
-                }`}
-                style={{ width: `${progress}%` }}
-              />
+            <div className="inline-block bg-[#E0F8E8] text-green-600 rounded-full px-4 py-1.5 text-sm font-semibold">
+              + {formatCurrency(calculatedProfit)} 수익
             </div>
-            <div className="flex justify-between text-sm text-coolgray-400 mt-3">
-              <span>시작: {formatFullDate(startDate)}</span>
-              <span>종료: {formatFullDate(endDate)}</span>
-            </div>
-          </div>
-        )}
+          </section>
 
-        {/* 예상 금액 카드 */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm">
-          <h3 className="text-sm font-medium text-coolgray-500 mb-2">만기 시 예상 금액</h3>
-          <div className="text-3xl font-bold text-coolgray-900 mb-3">
-            {formatCurrency(calculatedFutureValue)}
-          </div>
-          <div className="inline-block bg-[#E0F8E8] text-green-600 rounded-full px-4 py-1.5 text-sm font-semibold">
-            + {formatCurrency(calculatedProfit)} 수익
-          </div>
-        </div>
-
-        {/* 상세 정보 카드 / 수정 폼 */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm">
-          <h3 className="text-base font-bold text-coolgray-900 mb-4">
-            {isEditMode ? '투자 정보 수정' : '투자 정보'}
-          </h3>
-          <div className="space-y-4">
+          {/* 투자 정보 / 수정 폼 */}
+          <section className="py-5">
+            <h3 className="text-base font-bold text-coolgray-900 mb-4">
+              {isEditMode ? '투자 정보 수정' : '투자 정보'}
+            </h3>
+            <div className="space-y-4">
             {/* 월 투자금 */}
             <div className="flex justify-between items-center">
               <span className="text-coolgray-500">월 투자금</span>
@@ -348,45 +380,31 @@ export default function InvestmentDetailView({
                 + {formatCurrency(calculatedProfit)}
               </span>
             </div>
-          </div>
+            </div>
+          </section>
         </div>
 
-        {/* 하단 버튼 */}
-        {isEditMode ? (
-          <div className="flex gap-3">
-            <button
-              onClick={handleCancel}
-              disabled={isUpdating}
-              className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-coolgray-100 hover:bg-coolgray-200 text-coolgray-700 font-semibold rounded-xl transition-colors disabled:opacity-50"
-            >
-              <IconX className="w-5 h-5" />
-              취소
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={isUpdating}
-              className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-50"
-            >
-              <IconCheck className="w-5 h-5" />
-              {isUpdating ? '저장 중...' : '저장'}
-            </button>
-          </div>
-        ) : (
-          <div className="flex gap-3">
-            <button
-              onClick={() => setIsEditMode(true)}
-              className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-coolgray-100 hover:bg-coolgray-200 text-coolgray-700 font-semibold rounded-xl transition-colors"
-            >
-              <IconPencil className="w-5 h-5" />
-              수정
-            </button>
-            <button
-              onClick={() => setShowDeleteModal(true)}
-              className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-red-50 hover:bg-red-100 text-red-600 font-semibold rounded-xl transition-colors"
-            >
-              <IconTrash className="w-5 h-5" />
-              삭제
-            </button>
+        {/* 하단 버튼 - 편집 모드에서만 */}
+        {isEditMode && (
+          <div className="sticky bottom-0 bg-white pt-4 pb-6">
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancel}
+                disabled={isUpdating}
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-coolgray-100 hover:bg-coolgray-200 text-coolgray-700 font-semibold rounded-xl transition-colors disabled:opacity-50"
+              >
+                <IconX className="w-5 h-5" />
+                취소
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isUpdating}
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-50"
+              >
+                <IconCheck className="w-5 h-5" />
+                {isUpdating ? '저장 중...' : '저장'}
+              </button>
+            </div>
           </div>
         )}
       </div>
