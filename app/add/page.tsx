@@ -165,6 +165,18 @@ export default function AddInvestmentPage() {
     // 기납입액 기준 월복리 계산: 월납입금 * ((1 + r)^n - 1) / r * (1 + r)
     const finalAmount = monthlyAmount * ((Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate) * (1 + monthlyRate)
     
+    // 디버깅 로그
+    console.log('=== [계산 디버그] ===')
+    console.log(`월 투자금: ${monthlyAmount.toLocaleString()}원 (${monthlyAmount / 10000}만원)`)
+    console.log(`투자 기간: ${periodYears}년 (${totalMonths}개월)`)
+    console.log(`연 수익률: ${rate}%`)
+    console.log(`월 이율: ${(monthlyRate * 100).toFixed(6)}%`)
+    console.log(`총 원금: ${(monthlyAmount * totalMonths).toLocaleString()}원`)
+    console.log(`만기 금액: ${Math.round(finalAmount).toLocaleString()}원`)
+    console.log(`예상 수익: ${Math.round(finalAmount - monthlyAmount * totalMonths).toLocaleString()}원`)
+    console.log(`수익률(원금대비): ${((finalAmount / (monthlyAmount * totalMonths) - 1) * 100).toFixed(2)}%`)
+    console.log('====================')
+    
     return Math.round(finalAmount)
   }
 
@@ -274,6 +286,22 @@ export default function AddInvestmentPage() {
 
       // symbol 결정: 검색을 통해 선택한 경우 selectedStock.symbol, 직접 입력은 null
       const stockSymbol = !isManualInput && selectedStock?.symbol ? selectedStock.symbol : null
+
+      // 저장 전 디버깅 로그
+      console.log('=== [저장 데이터 디버그] ===')
+      console.log(`종목명: ${stockName.trim()}`)
+      console.log(`심볼: ${stockSymbol || '없음 (직접입력)'}`)
+      console.log(`월 투자금: ${monthlyAmountInWon.toLocaleString()}원`)
+      console.log(`투자 기간: ${periodYearsNum}년`)
+      console.log(`연 수익률: ${annualRate}%`)
+      console.log(`만기 금액: ${finalAmount.toLocaleString()}원`)
+      console.log(`직접 입력 여부: ${isCustomRate}`)
+      console.log(`- isManualInput: ${isManualInput}`)
+      console.log(`- originalSystemRate: ${originalSystemRate}`)
+      console.log(`- annualRate !== originalSystemRate: ${originalSystemRate !== null && annualRate !== originalSystemRate}`)
+      console.log(`투자 시작일: ${startDate}`)
+      console.log(`매월 투자일: ${investmentDays.length > 0 ? investmentDays.join(', ') + '일' : '미설정'}`)
+      console.log('===========================')
 
       // Supabase에 데이터 저장 (만원 단위를 원 단위로 변환하여 저장)
       const { error } = await supabase

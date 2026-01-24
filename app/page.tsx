@@ -40,25 +40,27 @@ export default function Home() {
 
   // 시뮬레이션 기반 복리 계산 헬퍼 함수
   // T: 사용자가 선택한 연도, P: 투자 만기, R: 연이율
+  // 기납입액 기준 월복리 공식: PMT * ((1+r)^n - 1) / r * (1+r)
   const calculateSimulatedValue = (
     monthlyAmount: number, 
     T: number, 
     P: number, 
     R: number = 0.10
   ): number => {
+    const monthlyRate = R / 12
+    
     // Case A: 선택 시점이 만기보다 짧거나 같음 (T <= P)
     if (T <= P) {
-      const monthlyRate = R / 12
       const totalMonths = T * 12
-      const futureValue = monthlyAmount * ((Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate)
+      // 기납입액 기준 월복리 계산 (월초 납입)
+      const futureValue = monthlyAmount * ((Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate) * (1 + monthlyRate)
       return futureValue
     }
     
     // Case B: 선택 시점이 만기보다 김 (T > P)
-    // Step 1: P년(만기)까지 복리로 불어남
-    const monthlyRate = R / 12
+    // Step 1: P년(만기)까지 복리로 불어남 (기납입액 기준)
     const maturityMonths = P * 12
-    const maturityValue = monthlyAmount * ((Math.pow(1 + monthlyRate, maturityMonths) - 1) / monthlyRate)
+    const maturityValue = monthlyAmount * ((Math.pow(1 + monthlyRate, maturityMonths) - 1) / monthlyRate) * (1 + monthlyRate)
     
     // Step 2: 만기 이후는 이자 없이 현금으로 보유 (T - P년 동안)
     // 만기 시점의 총액이 그대로 T년 시점의 자산

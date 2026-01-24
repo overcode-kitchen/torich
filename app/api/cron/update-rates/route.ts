@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// CAGR 계산 함수 (지난달 말일 기준)
+// CAGR 계산 함수 (지난달 말일 기준, 정확히 10년)
 async function calculateCAGR(symbol: string): Promise<number | null> {
   try {
     const { default: YahooFinanceClass } = require('yahoo-finance2')
@@ -9,15 +9,18 @@ async function calculateCAGR(symbol: string): Promise<number | null> {
       suppressNotices: ['ripHistorical', 'yahooSurvey']
     })
 
-    // 지난달 말일 기준으로 날짜 설정
+    // 지난달 말일 기준 설정
     const today = new Date()
     const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0)
-    lastMonthEnd.setHours(23, 59, 59, 999)
     
-    const endDate = lastMonthEnd
-    const startDate = new Date(lastMonthEnd)
-    startDate.setFullYear(startDate.getFullYear() - 10)
-    startDate.setHours(0, 0, 0, 0)
+    // 조회 기간: 정확히 10년 (120개월)
+    const endYear = lastMonthEnd.getFullYear()
+    const endMonth = lastMonthEnd.getMonth()
+    
+    // 시작: 10년 전 다음 달 1일
+    const startDate = new Date(endYear - 10, endMonth + 1, 1)
+    // 종료: 지난달 말일 다음날
+    const endDate = new Date(endYear, endMonth + 1, 1)
 
     // Yahoo Finance API 호출
     const chartResult = await yahooFinance.chart(symbol, {
@@ -26,19 +29,26 @@ async function calculateCAGR(symbol: string): Promise<number | null> {
       interval: '1mo'
     }) as any
 
-    let historicalData = chartResult.quotes
+    const historicalData = chartResult.quotes
 
     if (!historicalData || historicalData.length < 2) {
       return null
     }
 
-    // 지난달 말일 이후 데이터 제거
-    const lastDataDate = new Date(historicalData[historicalData.length - 1].date)
-    const lastDataYearMonth = lastDataDate.getFullYear() * 12 + lastDataDate.getMonth()
-    const lastMonthEndYearMonth = lastMonthEnd.getFullYear() * 12 + lastMonthEnd.getMonth()
+    // 안전장치: 이번 달(현재 월) 이상의 데이터 제거
+    const currentYearMonth = today.getFullYear() * 12 + today.getMonth()
     
-    if (lastDataYearMonth > lastMonthEndYearMonth) {
-      historicalData = historicalData.slice(0, -1)
+    let lastData = historicalData[historicalData.length - 1]
+    let lastDataDate = new Date(lastData.date)
+    let lastDataYearMonth = lastDataDate.getFullYear() * 12 + lastDataDate.getMonth()
+    
+    // 마지막 데이터의 연월이 현재 월 이상이면 제거
+    if (lastDataYearMonth >= currentYearMonth) {
+      console.log(`[CRON] [Safety] 이번 달 이상의 데이터 제거: ${lastDataDate.getFullYear()}/${lastDataDate.getMonth() + 1}`)
+      historicalData.pop()
+      lastData = historicalData[historicalData.length - 1]
+      lastDataDate = new Date(lastData.date)
+      lastDataYearMonth = lastDataDate.getFullYear() * 12 + lastDataDate.getMonth()
     }
 
     if (historicalData.length < 2) {
@@ -46,16 +56,16 @@ async function calculateCAGR(symbol: string): Promise<number | null> {
     }
 
     // CAGR 계산
-    const initialPrice = historicalData[0].close
-    const finalPrice = historicalData[historicalData.length - 1].close
+    const firstData = historicalData[0]
+    const initialPrice = firstData.close
+    const finalPrice = lastData.close
 
     if (!initialPrice || !finalPrice) {
       return null
     }
 
-    const initialDate = new Date(historicalData[0].date)
-    const finalDate = new Date(historicalData[historicalData.length - 1].date)
-    const yearsElapsed = (finalDate.getTime() - initialDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25)
+    const firstDate = new Date(firstData.date)
+    const yearsElapsed = (lastDataDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25)
 
     const cagr = Math.pow(finalPrice / initialPrice, 1 / yearsElapsed) - 1
     let averageRate = parseFloat((cagr * 100).toFixed(2))
