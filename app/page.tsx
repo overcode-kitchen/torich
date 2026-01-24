@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { IconPlus, IconLogout, IconUser, IconLoader2, IconInfoCircle } from '@tabler/icons-react'
+import { IconPlus, IconLogout, IconUser, IconLoader2, IconInfoCircle, IconChevronDown } from '@tabler/icons-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -14,11 +14,12 @@ import {
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { formatCurrency } from '@/lib/utils'
 // import { sendGAEvent } from '@next/third-parties/google'
-import { Investment } from '@/app/types/investment'
+import { Investment, getStartDate } from '@/app/types/investment'
 import InvestmentItem from '@/app/components/InvestmentItem'
 import InvestmentDetailView from '@/app/components/InvestmentDetailView'
 import CashHoldItemsSheet from '@/app/components/CashHoldItemsSheet'
 import MonthlyContributionSheet from '@/app/components/MonthlyContributionSheet'
+import { isCompleted } from '@/app/utils/date'
 
 export default function Home() {
   const router = useRouter()
@@ -32,6 +33,8 @@ export default function Home() {
   const [detailItem, setDetailItem] = useState<Investment | null>(null) // 상세 보기 아이템
   const [showCashHoldSheet, setShowCashHoldSheet] = useState(false) // 현금 보관 항목 시트
   const [showContributionSheet, setShowContributionSheet] = useState(false) // 월 납입 내역 시트
+  const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE' | 'ENDED'>('ACTIVE') // 필터 상태
+  const [sortBy, setSortBy] = useState<'TOTAL_VALUE' | 'MONTHLY_PAYMENT' | 'NAME'>('TOTAL_VALUE') // 정렬 기준
 
   const supabase = createClient()
 
@@ -95,6 +98,42 @@ export default function Home() {
       hasMaturedInvestments
     }
   }, [records, selectedYear])
+
+  // 필터링 및 정렬된 투자 목록
+  const filteredAndSortedRecords = useMemo(() => {
+    let filtered = records
+
+    // 필터링
+    if (filterStatus === 'ACTIVE') {
+      filtered = records.filter(item => {
+        const startDate = getStartDate(item)
+        return !isCompleted(startDate, item.period_years)
+      })
+    } else if (filterStatus === 'ENDED') {
+      filtered = records.filter(item => {
+        const startDate = getStartDate(item)
+        return isCompleted(startDate, item.period_years)
+      })
+    }
+
+    // 정렬
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortBy === 'TOTAL_VALUE') {
+        const R_a = a.annual_rate ? a.annual_rate / 100 : 0.10
+        const R_b = b.annual_rate ? b.annual_rate / 100 : 0.10
+        const value_a = calculateSimulatedValue(a.monthly_amount, a.period_years, a.period_years, R_a)
+        const value_b = calculateSimulatedValue(b.monthly_amount, b.period_years, b.period_years, R_b)
+        return value_b - value_a // 내림차순
+      } else if (sortBy === 'MONTHLY_PAYMENT') {
+        return b.monthly_amount - a.monthly_amount // 내림차순
+      } else if (sortBy === 'NAME') {
+        return a.title.localeCompare(b.title, 'ko') // 오름차순
+      }
+      return 0
+    })
+
+    return sorted
+  }, [records, filterStatus, sortBy, calculateSimulatedValue])
 
   useEffect(() => {
     // 인증 상태 확인 및 데이터 로드
@@ -348,15 +387,86 @@ export default function Home() {
               <h2 className="text-lg font-bold text-coolgray-900 mb-4">
                 내 투자 목록
               </h2>
+              
+              {/* 필터 및 정렬 컨트롤 바 */}
+              <div className="flex items-center justify-between mb-4 gap-2">
+                {/* 필터 칩 */}
+                <div className="flex items-center gap-1.5 flex-1 overflow-x-auto">
+                  <button
+                    onClick={() => setFilterStatus('ALL')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg whitespace-nowrap transition-colors ${
+                      filterStatus === 'ALL'
+                        ? 'bg-coolgray-900 text-white'
+                        : 'bg-coolgray-25 text-coolgray-600 hover:bg-coolgray-50'
+                    }`}
+                  >
+                    전체
+                  </button>
+                  <button
+                    onClick={() => setFilterStatus('ACTIVE')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg whitespace-nowrap transition-colors ${
+                      filterStatus === 'ACTIVE'
+                        ? 'bg-coolgray-900 text-white'
+                        : 'bg-coolgray-25 text-coolgray-600 hover:bg-coolgray-50'
+                    }`}
+                  >
+                    진행 중
+                  </button>
+                  <button
+                    onClick={() => setFilterStatus('ENDED')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg whitespace-nowrap transition-colors ${
+                      filterStatus === 'ENDED'
+                        ? 'bg-coolgray-900 text-white'
+                        : 'bg-coolgray-25 text-coolgray-600 hover:bg-coolgray-50'
+                    }`}
+                  >
+                    종료
+                  </button>
+                </div>
+
+                {/* 정렬 드롭다운 */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-coolgray-600 hover:text-coolgray-900 transition-colors whitespace-nowrap">
+                      {sortBy === 'TOTAL_VALUE' && '평가금액 순'}
+                      {sortBy === 'MONTHLY_PAYMENT' && '월 투자액 순'}
+                      {sortBy === 'NAME' && '이름 순'}
+                      <IconChevronDown className="w-4 h-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-[140px]">
+                    <DropdownMenuItem onClick={() => setSortBy('TOTAL_VALUE')}>
+                      평가금액 순
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortBy('MONTHLY_PAYMENT')}>
+                      월 투자액 순
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortBy('NAME')}>
+                      이름 순
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
               <div>
-                {records.map((item) => (
-                  <InvestmentItem
-                    key={item.id}
-                    item={item}
-                    onClick={() => setDetailItem(item)}
-                    calculateFutureValue={calculateSimulatedValue}
-                  />
-                ))}
+                {filteredAndSortedRecords.length > 0 ? (
+                  filteredAndSortedRecords.map((item) => (
+                    <InvestmentItem
+                      key={item.id}
+                      item={item}
+                      onClick={() => setDetailItem(item)}
+                      calculateFutureValue={calculateSimulatedValue}
+                    />
+                  ))
+                ) : (
+                  <div className="py-8 text-center">
+                    <p className="text-coolgray-400 text-sm">
+                      {filterStatus === 'ACTIVE' && '진행 중인 투자가 없습니다'}
+                      {filterStatus === 'ENDED' && '종료된 투자가 없습니다'}
+                      {filterStatus === 'ALL' && '투자가 없습니다'}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
