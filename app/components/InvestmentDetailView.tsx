@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { formatCurrency } from '@/lib/utils'
 import { IconArrowLeft, IconPencil, IconTrash, IconCheck, IconX, IconInfoCircle } from '@tabler/icons-react'
 import { Investment, getStartDate, formatInvestmentDays } from '@/app/types/investment'
+import InvestmentDaysPickerSheet from '@/app/components/InvestmentDaysPickerSheet'
 import { 
   calculateEndDate, 
   getElapsedText, 
@@ -46,6 +47,7 @@ export default function InvestmentDetailView({
   const [editPeriodYears, setEditPeriodYears] = useState('')
   const [editAnnualRate, setEditAnnualRate] = useState('')
   const [editInvestmentDays, setEditInvestmentDays] = useState<number[]>([])
+  const [isDaysPickerOpen, setIsDaysPickerOpen] = useState(false)
   const [isRateManuallyEdited, setIsRateManuallyEdited] = useState(false)
   
   // 원본 수익률 저장 (비교용)
@@ -58,6 +60,7 @@ export default function InvestmentDetailView({
       setEditPeriodYears(item.period_years.toString())
       setEditAnnualRate((item.annual_rate || 10).toString())
       setEditInvestmentDays(item.investment_days || [])
+      setIsDaysPickerOpen(false)
       setIsRateManuallyEdited(false)
     }
   }, [isEditMode, item])
@@ -295,47 +298,30 @@ export default function InvestmentDetailView({
               {isEditMode ? (
                 <div className="flex-1 ml-4">
                   {/* 선택된 날짜 표시 */}
-                  {editInvestmentDays.length > 0 && (
-                    <div className="mb-2 flex flex-wrap gap-1 justify-end">
-                      {[...editInvestmentDays].sort((a, b) => a - b).map((day) => (
-                        <span
-                          key={day}
-                          className="inline-flex items-center gap-1 bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full text-xs font-medium"
-                        >
-                          {day}일
-                          <button
-                            type="button"
-                            onClick={() => setEditInvestmentDays(prev => prev.filter(d => d !== day))}
-                            className="hover:text-brand-900"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  {/* 날짜 선택 그리드 */}
-                  <div className="grid grid-cols-7 gap-0.5">
-                    {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                      <button
+                  <div className="flex flex-wrap gap-1 justify-end">
+                    {[...editInvestmentDays].sort((a, b) => a - b).map((day) => (
+                      <span
                         key={day}
-                        type="button"
-                        onClick={() => {
-                          if (editInvestmentDays.includes(day)) {
-                            setEditInvestmentDays(prev => prev.filter(d => d !== day))
-                          } else {
-                            setEditInvestmentDays(prev => [...prev, day])
-                          }
-                        }}
-                        className={`w-7 h-7 rounded-full text-xs font-medium transition-colors ${
-                          editInvestmentDays.includes(day)
-                            ? 'bg-brand-600 text-white'
-                            : 'bg-coolgray-50 text-coolgray-700 hover:bg-coolgray-100'
-                        }`}
+                        className="inline-flex items-center gap-1 bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full text-xs font-medium"
                       >
-                        {day}
-                      </button>
+                        {day}일
+                        <button
+                          type="button"
+                          onClick={() => setEditInvestmentDays(prev => prev.filter(d => d !== day))}
+                          className="hover:text-brand-900"
+                        >
+                          ×
+                        </button>
+                      </span>
                     ))}
+
+                    <button
+                      type="button"
+                      onClick={() => setIsDaysPickerOpen(true)}
+                      className="inline-flex items-center bg-coolgray-50 text-coolgray-700 px-2 py-0.5 rounded-full text-xs font-semibold hover:bg-coolgray-100 transition-colors"
+                    >
+                      + 추가
+                    </button>
                   </div>
                 </div>
               ) : (
@@ -449,6 +435,18 @@ export default function InvestmentDetailView({
             </div>
           </div>
         </div>
+      )}
+
+      {/* 투자일 선택 바텀 시트 */}
+      {isEditMode && isDaysPickerOpen && (
+        <InvestmentDaysPickerSheet
+          days={editInvestmentDays}
+          onClose={() => setIsDaysPickerOpen(false)}
+          onApply={(days) => {
+            setEditInvestmentDays(days)
+            setIsDaysPickerOpen(false)
+          }}
+        />
       )}
     </div>
   )
