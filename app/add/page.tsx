@@ -57,6 +57,10 @@ export default function AddInvestmentPage() {
   const [isRateEditing, setIsRateEditing] = useState(false)
   const [editingRate, setEditingRate] = useState('')
   const [originalSystemRate, setOriginalSystemRate] = useState<number | null>(null) // 시스템에서 가져온 원본 수익률
+  
+  // 수익률 로딩 상태
+  const [isRateLoading, setIsRateLoading] = useState(false)
+  const [rateFetchFailed, setRateFetchFailed] = useState(false)
 
   // 체류 시간 추적
   useEffect(() => {
@@ -177,6 +181,8 @@ export default function AddInvestmentPage() {
       })
       setStockName(stock.name)
       setIsSearching(true)
+      setIsRateLoading(true)
+      setRateFetchFailed(false)
 
       // Stock API 호출하여 상세 정보 조회 (Yahoo Finance 데이터)
       const response = await fetch(`/api/stock?symbol=${encodeURIComponent(stock.symbol)}`)
@@ -187,20 +193,24 @@ export default function AddInvestmentPage() {
         setSelectedStock(data)
         setAnnualRate(data.averageRate)
         setOriginalSystemRate(data.averageRate) // 원본 시스템 수익률 저장
+        setRateFetchFailed(false)
       } else {
         // 상세 정보 조회 실패 시 기본값 사용
         console.warn('상세 정보 조회 실패, 기본값 사용')
         setSelectedStock(null)
         setAnnualRate(10)
         setOriginalSystemRate(null)
+        setRateFetchFailed(true)
       }
     } catch (error) {
       console.error('상세 정보 조회 오류:', error)
       setSelectedStock(null)
       setAnnualRate(10)
       setOriginalSystemRate(null)
+      setRateFetchFailed(true)
     } finally {
       setIsSearching(false)
+      setIsRateLoading(false)
     }
   }
 
@@ -493,9 +503,33 @@ export default function AddInvestmentPage() {
             </div>
             
             {/* 선택된 종목 안내 문구 - 종목 선택 필드 바로 아래 */}
-            {selectedStock && (
+            {(selectedStock || isRateLoading) && (
               <div className="mt-2">
-                {isRateEditing ? (
+                {isRateLoading ? (
+                  // 로딩 중 - 스피너 + 안내 문구
+                  <div className="flex items-center gap-2">
+                    <IconLoader2 className="w-4 h-4 animate-spin text-brand-600" />
+                    <span className="text-sm text-coolgray-500">수익률을 분석하고 있어요...</span>
+                  </div>
+                ) : rateFetchFailed ? (
+                  // API 실패 - 경고 문구 + 수정 버튼
+                  <div className="text-sm font-medium flex items-center gap-1 flex-wrap">
+                    <span className="text-amber-600">⚠️</span>
+                    <span className="text-amber-600">
+                      데이터를 불러오지 못해 기본 수익률({annualRate}%)로 설정했어요.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingRate(annualRate.toString())
+                        setIsRateEditing(true)
+                      }}
+                      className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full hover:bg-amber-200 transition-colors ml-1"
+                    >
+                      수정
+                    </button>
+                  </div>
+                ) : isRateEditing ? (
                   // 수정 모드
                   <div className="flex items-center gap-2 bg-coolgray-50 rounded-xl p-3">
                     <span className="text-sm text-coolgray-600">연 수익률</span>
@@ -518,6 +552,7 @@ export default function AddInvestmentPage() {
                         const newRate = parseFloat(editingRate)
                         if (newRate > 0) {
                           setAnnualRate(newRate)
+                          setRateFetchFailed(false)
                         }
                         setIsRateEditing(false)
                       }}
@@ -812,33 +847,47 @@ export default function AddInvestmentPage() {
         {stockName.trim() && monthlyAmount && period && (
           <div className="mb-4 bg-brand-50 border-2 border-dashed border-brand-200 rounded-2xl p-5 animate-in fade-in-0 slide-in-from-bottom-2">
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-lg">🔍</span>
-              <h3 className="text-sm font-bold text-coolgray-900">예상 결과</h3>
+              {isRateLoading ? (
+                <IconLoader2 className="w-5 h-5 animate-spin text-brand-600" />
+              ) : (
+                <span className="text-lg">🔍</span>
+              )}
+              <h3 className="text-sm font-bold text-coolgray-900">
+                {isRateLoading ? '분석 중...' : '예상 결과'}
+              </h3>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-coolgray-600">만기 금액</span>
-                <span className="text-lg font-bold text-coolgray-900">
-                  {formatCurrency(
-                    calculateFinalAmount(
-                      parseInt(monthlyAmount.replace(/,/g, '')) * 10000,
-                      parseInt(period),
-                      annualRate
-                    )
-                  )}
-                </span>
+                {isRateLoading ? (
+                  <IconLoader2 className="w-5 h-5 animate-spin text-brand-600" />
+                ) : (
+                  <span className="text-lg font-bold text-coolgray-900">
+                    {formatCurrency(
+                      calculateFinalAmount(
+                        parseInt(monthlyAmount.replace(/,/g, '')) * 10000,
+                        parseInt(period),
+                        annualRate
+                      )
+                    )}
+                  </span>
+                )}
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-coolgray-600">예상 수익</span>
-                <span className="text-lg font-bold text-green-600">
-                  + {formatCurrency(
-                    calculateFinalAmount(
-                      parseInt(monthlyAmount.replace(/,/g, '')) * 10000,
-                      parseInt(period),
-                      annualRate
-                    ) - (parseInt(monthlyAmount.replace(/,/g, '')) * 10000 * parseInt(period) * 12)
-                  )}
-                </span>
+                {isRateLoading ? (
+                  <IconLoader2 className="w-5 h-5 animate-spin text-brand-600" />
+                ) : (
+                  <span className="text-lg font-bold text-green-600">
+                    + {formatCurrency(
+                      calculateFinalAmount(
+                        parseInt(monthlyAmount.replace(/,/g, '')) * 10000,
+                        parseInt(period),
+                        annualRate
+                      ) - (parseInt(monthlyAmount.replace(/,/g, '')) * 10000 * parseInt(period) * 12)
+                    )}
+                  </span>
+                )}
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-coolgray-600">
