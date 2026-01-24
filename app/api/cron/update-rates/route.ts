@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// CAGR 계산 함수 (지난달 말일 기준, 정확히 10년)
+// CAGR 계산 함수 (지난달 말일 기준, 정확히 10년, KST 고정)
 async function calculateCAGR(symbol: string): Promise<number | null> {
   try {
     const { default: YahooFinanceClass } = require('yahoo-finance2')
@@ -9,18 +9,22 @@ async function calculateCAGR(symbol: string): Promise<number | null> {
       suppressNotices: ['ripHistorical', 'yahooSurvey']
     })
 
-    // 지난달 말일 기준 설정
-    const today = new Date()
-    const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0)
+    // 1. 한국 시간(KST) 현재 시각 구하기 (타임존 밀림 방지)
+    const now = new Date()
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60 * 1000)
+    const KR_TIME_DIFF = 9 * 60 * 60 * 1000
+    const todayKST = new Date(utc + KR_TIME_DIFF)
     
-    // 조회 기간: 정확히 10년 (120개월)
+    // 2. 기준일 설정: 한국 시간 기준 지난달 마지막 날
+    const lastMonthEnd = new Date(todayKST.getFullYear(), todayKST.getMonth(), 0)
+    
+    // 3. 조회 기간: 정확히 10년 (120개월)
     const endYear = lastMonthEnd.getFullYear()
     const endMonth = lastMonthEnd.getMonth()
     
-    // 시작: 10년 전 다음 달 1일
-    const startDate = new Date(endYear - 10, endMonth + 1, 1)
-    // 종료: 지난달 말일 다음날
-    const endDate = new Date(endYear, endMonth + 1, 1)
+    // API 요청용 날짜 (Date.UTC 사용으로 타임존 이슈 방지)
+    const startDate = new Date(Date.UTC(endYear - 10, endMonth + 1, 1))
+    const endDate = new Date(Date.UTC(endYear, endMonth + 1, 2))
 
     // Yahoo Finance API 호출
     const chartResult = await yahooFinance.chart(symbol, {
@@ -35,8 +39,8 @@ async function calculateCAGR(symbol: string): Promise<number | null> {
       return null
     }
 
-    // 안전장치: 범위를 벗어난 데이터 제거
-    const currentYearMonth = today.getFullYear() * 12 + today.getMonth()
+    // 4. 안전장치: 범위를 벗어난 데이터 제거 (KST 기준)
+    const currentYearMonth = todayKST.getFullYear() * 12 + todayKST.getMonth()
     const targetStartYearMonth = (endYear - 10) * 12 + (endMonth + 1)
     
     // 시작 데이터가 목표 시작월보다 이전이면 제거
