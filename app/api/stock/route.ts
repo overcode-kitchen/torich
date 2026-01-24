@@ -36,22 +36,28 @@ export async function GET(request: Request) {
     })
 
     // ========================================
-    // [데이터 갱신 정책] 지난달 말일 기준 CAGR 계산
+    // [데이터 갱신 정책] 지난달 말일 기준 CAGR 계산 (KST 고정)
     // ========================================
     
-    // 1. 기준일 설정: 지난달 마지막 날 (lastMonthEnd)
-    const today = new Date()
-    const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0)
+    // 1. 한국 시간(KST) 현재 시각 구하기 (타임존 밀림 방지)
+    const now = new Date()
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60 * 1000)
+    const KR_TIME_DIFF = 9 * 60 * 60 * 1000
+    const todayKST = new Date(utc + KR_TIME_DIFF)
     
-    // 2. 조회 기간 설정: 정확히 10년 (120개월)
+    // 2. 기준일 설정: 한국 시간 기준 지난달 마지막 날
+    const lastMonthEnd = new Date(todayKST.getFullYear(), todayKST.getMonth(), 0)
+    
+    // 3. 조회 기간 설정: 정확히 10년 (120개월)
     // 예: 지난달이 2025년 12월이면 → 2016년 1월 ~ 2025년 12월
     const endYear = lastMonthEnd.getFullYear()
     const endMonth = lastMonthEnd.getMonth() // 0-indexed (12월 = 11)
     
+    // API 요청용 날짜 (Date.UTC 사용으로 타임존 이슈 방지)
     // 시작: 10년 전 다음 달 1일 (예: 2016년 1월 1일)
-    const startDate = new Date(endYear - 10, endMonth + 1, 1)
-    // 종료: 지난달 말일 다음날 (API가 해당 날짜 이전까지 조회하므로)
-    const endDate = new Date(endYear, endMonth + 1, 1)
+    const startDate = new Date(Date.UTC(endYear - 10, endMonth + 1, 1))
+    // 종료: 다음 달 2일 (안전하게 하루 더 밀어서 요청)
+    const endDate = new Date(Date.UTC(endYear, endMonth + 1, 2))
 
     // 디버그: 조회 기간 로그
     const expectedStartMonth = `${startDate.getFullYear()}년 ${startDate.getMonth() + 1}월`
@@ -74,8 +80,8 @@ export async function GET(request: Request) {
       )
     }
 
-    // 3. 안전장치: 범위를 벗어난 데이터 제거
-    const currentYearMonth = today.getFullYear() * 12 + today.getMonth()
+    // 4. 안전장치: 범위를 벗어난 데이터 제거 (KST 기준)
+    const currentYearMonth = todayKST.getFullYear() * 12 + todayKST.getMonth()
     // 목표 시작월: 10년 전 다음 달 (예: 2025년 12월 기준 → 2016년 1월)
     const targetStartYearMonth = (endYear - 10) * 12 + (endMonth + 1)
     
