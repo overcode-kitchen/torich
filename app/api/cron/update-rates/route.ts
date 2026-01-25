@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// CAGR 계산 함수 (지난달 말일 기준, 정확히 10년, KST 고정)
+// CAGR 계산 함수 (지난달 말일 기준, 정확히 10년)
+// The 15th Strategy: 월 중간(15일)으로 설정해 타임존 이슈 방지
 async function calculateCAGR(symbol: string): Promise<number | null> {
   try {
     const { default: YahooFinanceClass } = require('yahoo-finance2')
@@ -9,22 +10,25 @@ async function calculateCAGR(symbol: string): Promise<number | null> {
       suppressNotices: ['ripHistorical', 'yahooSurvey']
     })
 
-    // 1. 한국 시간(KST) 현재 시각 구하기 (타임존 밀림 방지)
-    const now = new Date()
-    const utc = now.getTime() + (now.getTimezoneOffset() * 60 * 1000)
-    const KR_TIME_DIFF = 9 * 60 * 60 * 1000
-    const todayKST = new Date(utc + KR_TIME_DIFF)
+    // 1. 기준일 설정: 지난달 마지막 날
+    const today = new Date()
+    const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0)
     
-    // 2. 기준일 설정: 한국 시간 기준 지난달 마지막 날
-    const lastMonthEnd = new Date(todayKST.getFullYear(), todayKST.getMonth(), 0)
-    
-    // 3. 조회 기간: 정확히 10년 (120개월)
+    // 2. 조회 기간: 정확히 10년 (120개월)
     const endYear = lastMonthEnd.getFullYear()
     const endMonth = lastMonthEnd.getMonth()
     
-    // API 요청용 날짜 (Date.UTC 사용으로 타임존 이슈 방지)
-    const startDate = new Date(Date.UTC(endYear - 10, endMonth + 1, 1))
-    const endDate = new Date(Date.UTC(endYear, endMonth + 1, 2))
+    // API 요청용 날짜 - 15일 전략 (어떤 타임존에서도 월이 바뀌지 않음)
+    // 시작: 10년 전 전월 15일 - 1월 데이터 확보를 위해 한 달 여유
+    const startDate = new Date(Date.UTC(endYear - 10, endMonth, 15))
+    const endDate = new Date(Date.UTC(endYear, endMonth + 1, 15))
+
+    // ========== Yahoo Finance API Request 로그 ==========
+    const period1Unix = Math.floor(startDate.getTime() / 1000)
+    const period2Unix = Math.floor(endDate.getTime() / 1000)
+    const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?period1=${period1Unix}&period2=${period2Unix}&interval=1mo`
+    console.log(`[CRON CAGR] ${symbol} | REQUEST: period1=${startDate.toISOString().split('T')[0]} (${period1Unix}), period2=${endDate.toISOString().split('T')[0]} (${period2Unix}), interval=1mo`)
+    console.log(`[CRON CAGR] ${symbol} | URL: ${yahooUrl}`)
 
     // Yahoo Finance API 호출
     const chartResult = await yahooFinance.chart(symbol, {
@@ -35,12 +39,15 @@ async function calculateCAGR(symbol: string): Promise<number | null> {
 
     const historicalData = chartResult.quotes
 
+    // Raw 데이터 개수만 먼저 로그
+    console.log(`[CRON CAGR] ${symbol} | RESPONSE(Raw): ${historicalData?.length || 0}개월 데이터`)
+
     if (!historicalData || historicalData.length < 2) {
       return null
     }
 
-    // 4. 안전장치: 범위를 벗어난 데이터 제거 (KST 기준)
-    const currentYearMonth = todayKST.getFullYear() * 12 + todayKST.getMonth()
+    // 3. 안전장치: 범위를 벗어난 데이터 제거
+    const currentYearMonth = today.getFullYear() * 12 + today.getMonth()
     const targetStartYearMonth = (endYear - 10) * 12 + (endMonth + 1)
     
     // 시작 데이터가 목표 시작월보다 이전이면 제거
@@ -72,8 +79,14 @@ async function calculateCAGR(symbol: string): Promise<number | null> {
       return null
     }
 
-    // CAGR 계산
+    // ========== 정제된 데이터 로그 (Safety Logic 이후) ==========
     const firstData = historicalData[0]
+    const firstDate = new Date(firstData.date)
+    console.log(`[CRON CAGR] ${symbol} | RESPONSE(정제후): ${historicalData.length}개월 데이터`)
+    console.log(`[CRON CAGR] ${symbol} | 첫번째(시작): ${firstDate.getFullYear()}년 ${firstDate.getMonth() + 1}월, close=${firstData.close?.toFixed(0) || 'N/A'}`)
+    console.log(`[CRON CAGR] ${symbol} | 마지막(끝): ${lastDataDate.getFullYear()}년 ${lastDataDate.getMonth() + 1}월, close=${lastData.close?.toFixed(0) || 'N/A'}`)
+
+    // CAGR 계산 - 단순 종가(close) 사용
     const initialPrice = firstData.close
     const finalPrice = lastData.close
 
@@ -81,7 +94,6 @@ async function calculateCAGR(symbol: string): Promise<number | null> {
       return null
     }
 
-    const firstDate = new Date(firstData.date)
     const yearsElapsed = (lastDataDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25)
 
     const cagr = Math.pow(finalPrice / initialPrice, 1 / yearsElapsed) - 1

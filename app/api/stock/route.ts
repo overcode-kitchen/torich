@@ -36,33 +36,31 @@ export async function GET(request: Request) {
     })
 
     // ========================================
-    // [데이터 갱신 정책] 지난달 말일 기준 CAGR 계산 (KST 고정)
+    // [데이터 갱신 정책] 지난달 말일 기준 CAGR 계산
+    // The 15th Strategy: 월 중간(15일)으로 설정해 타임존 이슈 방지
     // ========================================
     
-    // 1. 한국 시간(KST) 현재 시각 구하기 (타임존 밀림 방지)
-    const now = new Date()
-    const utc = now.getTime() + (now.getTimezoneOffset() * 60 * 1000)
-    const KR_TIME_DIFF = 9 * 60 * 60 * 1000
-    const todayKST = new Date(utc + KR_TIME_DIFF)
+    // 1. 기준일 설정: 지난달 마지막 날
+    const today = new Date()
+    const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0)
     
-    // 2. 기준일 설정: 한국 시간 기준 지난달 마지막 날
-    const lastMonthEnd = new Date(todayKST.getFullYear(), todayKST.getMonth(), 0)
-    
-    // 3. 조회 기간 설정: 정확히 10년 (120개월)
+    // 2. 조회 기간 설정: 정확히 10년 (120개월)
     // 예: 지난달이 2025년 12월이면 → 2016년 1월 ~ 2025년 12월
     const endYear = lastMonthEnd.getFullYear()
     const endMonth = lastMonthEnd.getMonth() // 0-indexed (12월 = 11)
     
-    // API 요청용 날짜 (Date.UTC 사용으로 타임존 이슈 방지)
-    // 시작: 10년 전 다음 달 1일 (예: 2016년 1월 1일)
-    const startDate = new Date(Date.UTC(endYear - 10, endMonth + 1, 1))
-    // 종료: 다음 달 2일 (안전하게 하루 더 밀어서 요청)
-    const endDate = new Date(Date.UTC(endYear, endMonth + 1, 2))
+    // API 요청용 날짜 - 15일 전략 (어떤 타임존에서도 월이 바뀌지 않음)
+    // 시작: 10년 전 전월 15일 (예: 2015년 12월 15일) - 1월 데이터 확보를 위해 한 달 여유
+    const startDate = new Date(Date.UTC(endYear - 10, endMonth, 15))
+    // 종료: 다음 달 15일 (예: 2026년 1월 15일)
+    const endDate = new Date(Date.UTC(endYear, endMonth + 1, 15))
 
-    // 디버그: 조회 기간 로그
-    const expectedStartMonth = `${startDate.getFullYear()}년 ${startDate.getMonth() + 1}월`
-    const expectedEndMonth = `${lastMonthEnd.getFullYear()}년 ${lastMonthEnd.getMonth() + 1}월`
-    console.log(`[Stock API] ${symbol} | 목표 기간: ${expectedStartMonth} ~ ${expectedEndMonth} (10년 = 120개월)`)
+    // ========== Yahoo Finance API Request 로그 ==========
+    const period1Unix = Math.floor(startDate.getTime() / 1000)
+    const period2Unix = Math.floor(endDate.getTime() / 1000)
+    const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?period1=${period1Unix}&period2=${period2Unix}&interval=1mo`
+    console.log(`[Stock API] ${symbol} | REQUEST: period1=${startDate.toISOString().split('T')[0]} (${period1Unix}), period2=${endDate.toISOString().split('T')[0]} (${period2Unix}), interval=1mo`)
+    console.log(`[Stock API] ${symbol} | URL: ${yahooUrl}`)
 
     // chart() API를 사용 (historical()은 deprecated)
     const chartResult = await yahooFinance.chart(symbol, {
@@ -73,6 +71,9 @@ export async function GET(request: Request) {
 
     const historicalData = chartResult.quotes
 
+    // Raw 데이터 개수만 먼저 로그
+    console.log(`[Stock API] ${symbol} | RESPONSE(Raw): ${historicalData?.length || 0}개월 데이터`)
+
     if (!historicalData || historicalData.length < 2) {
       return NextResponse.json(
         { error: '충분한 히스토리 데이터가 없습니다.' },
@@ -80,8 +81,8 @@ export async function GET(request: Request) {
       )
     }
 
-    // 4. 안전장치: 범위를 벗어난 데이터 제거 (KST 기준)
-    const currentYearMonth = todayKST.getFullYear() * 12 + todayKST.getMonth()
+    // 3. 안전장치: 범위를 벗어난 데이터 제거
+    const currentYearMonth = today.getFullYear() * 12 + today.getMonth()
     // 목표 시작월: 10년 전 다음 달 (예: 2025년 12월 기준 → 2016년 1월)
     const targetStartYearMonth = (endYear - 10) * 12 + (endMonth + 1)
     
@@ -121,14 +122,14 @@ export async function GET(request: Request) {
       )
     }
 
-    // 4. 데이터 검증 로그
+    // ========== 정제된 데이터 로그 (Safety Logic 이후) ==========
     const firstData = historicalData[0]
     const firstDate = new Date(firstData.date)
+    console.log(`[Stock API] ${symbol} | RESPONSE(정제후): ${historicalData.length}개월 데이터`)
+    console.log(`[Stock API] ${symbol} | 첫번째(시작): ${firstDate.getFullYear()}년 ${firstDate.getMonth() + 1}월, close=${firstData.close?.toFixed(0) || 'N/A'}`)
+    console.log(`[Stock API] ${symbol} | 마지막(끝): ${lastDataDate.getFullYear()}년 ${lastDataDate.getMonth() + 1}월, close=${lastData.close?.toFixed(0) || 'N/A'}`)
 
-    const actualMonths = historicalData.length
-    console.log(`[Stock API] ${symbol} | 실제 데이터: ${actualMonths}개월 (${firstDate.getFullYear()}/${firstDate.getMonth() + 1} ~ ${lastDataDate.getFullYear()}/${lastDataDate.getMonth() + 1})`)
-
-    // 5. CAGR 계산 (연평균 수익률)
+    // 5. CAGR 계산 (연평균 수익률) - 단순 종가(close) 사용
     const initialPrice = firstData.close
     const finalPrice = lastData.close
 
