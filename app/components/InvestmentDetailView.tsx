@@ -12,6 +12,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu'
+import { InputWithUnit } from '@/components/ui/input-with-unit'
 import { 
   calculateEndDate, 
   getElapsedText, 
@@ -200,95 +201,89 @@ export default function InvestmentDetailView({
 
       {/* 콘텐츠 */}
       <div className="max-w-md mx-auto px-4 pb-10">
-        <div className="divide-y divide-coolgray-100">
-          {/* 종목명 & 상태 */}
-          <section className="py-5">
-            <h2 className="text-2xl font-bold text-coolgray-900 mb-2">
-              {item.title}
-            </h2>
-            {isEditMode ? (
-              <p className="text-sm text-coolgray-400">종목명은 수정할 수 없습니다</p>
-            ) : (
-              <p className={`text-lg ${completed ? 'text-green-600' : 'text-brand-600'} font-semibold`}>
-                {completed ? '목표 달성! 🎉' : elapsedText}
-              </p>
-            )}
-          </section>
-
-          {/* 진행률 - 수정 모드에서는 숨김 */}
-          {!isEditMode && (
+        {/* 메인 카드(p-6)와 동일한 내부 여백(24px) */}
+        <div className="px-6">
+          <div className="divide-y divide-coolgray-100">
+            {/* 종목명 & 상태 */}
             <section className="py-5">
-              <div className="flex justify-between text-sm text-coolgray-500 mb-3">
-                <span className="font-medium">진행률</span>
-                <span className="font-bold text-coolgray-900 text-lg">{progress}%</span>
+              <h2 className="text-2xl font-bold text-coolgray-900 mb-2">
+                {item.title}
+              </h2>
+              {isEditMode ? (
+                <p className="text-sm text-coolgray-400">종목명은 수정할 수 없습니다</p>
+              ) : (
+                <p className={`text-lg ${completed ? 'text-green-600' : 'text-brand-600'} font-semibold`}>
+                  {completed ? '목표 달성! 🎉' : elapsedText}
+                </p>
+              )}
+            </section>
+
+            {/* 진행률 - 수정 모드에서는 숨김 */}
+            {!isEditMode && (
+              <section className="py-5">
+                <div className="flex justify-between text-sm text-coolgray-500 mb-3">
+                  <span className="font-medium">진행률</span>
+                  <span className="font-bold text-coolgray-900 text-lg">{progress}%</span>
+                </div>
+                <div className="w-full h-4 bg-coolgray-100 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      completed ? 'bg-green-500' : 'bg-brand-500'
+                    }`}
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-sm text-coolgray-400 mt-3">
+                  <span>시작: {formatFullDate(startDate)}</span>
+                  <span>종료: {formatFullDate(endDate)}</span>
+                </div>
+              </section>
+            )}
+
+            {/* 만기 시 예상 금액 */}
+            <section className="py-5">
+              <h3 className="text-sm font-medium text-coolgray-500 mb-2">만기 시 예상 금액</h3>
+              <div className="text-3xl font-bold text-coolgray-900 mb-3">
+                {formatCurrency(calculatedFutureValue)}
               </div>
-              <div className="w-full h-4 bg-coolgray-100 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    completed ? 'bg-green-500' : 'bg-brand-500'
-                  }`}
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-sm text-coolgray-400 mt-3">
-                <span>시작: {formatFullDate(startDate)}</span>
-                <span>종료: {formatFullDate(endDate)}</span>
+              <div className="inline-block bg-[#E0F8E8] text-green-600 rounded-full px-4 py-1.5 text-sm font-semibold">
+                + {formatCurrency(calculatedProfit)} 수익
               </div>
             </section>
-          )}
 
-          {/* 만기 시 예상 금액 */}
-          <section className="py-5">
-            <h3 className="text-sm font-medium text-coolgray-500 mb-2">만기 시 예상 금액</h3>
-            <div className="text-3xl font-bold text-coolgray-900 mb-3">
-              {formatCurrency(calculatedFutureValue)}
-            </div>
-            <div className="inline-block bg-[#E0F8E8] text-green-600 rounded-full px-4 py-1.5 text-sm font-semibold">
-              + {formatCurrency(calculatedProfit)} 수익
-            </div>
-          </section>
-
-          {/* 투자 정보 / 수정 폼 */}
-          <section className="py-5">
-            <h3 className="text-base font-bold text-coolgray-900 mb-4">
-              {isEditMode ? '투자 정보 수정' : '투자 정보'}
-            </h3>
-            <div className="space-y-4">
-            {/* 월 투자금 */}
-            <div className="flex justify-between items-center">
-              <span className="text-coolgray-500">월 투자금</span>
-              {isEditMode ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
+            {/* 투자 정보 / 수정 폼 */}
+            <section className="py-5">
+              <h3 className="text-base font-bold text-coolgray-900 mb-4">
+                {isEditMode ? '투자 정보 수정' : '투자 정보'}
+              </h3>
+              <div className="space-y-4">
+              {/* 월 투자금 */}
+              <div className="flex justify-between items-center">
+                <span className="text-coolgray-500">월 투자금</span>
+                {isEditMode ? (
+                  <InputWithUnit
                     value={editMonthlyAmount}
                     onChange={(e) => handleNumericInput(e.target.value, setEditMonthlyAmount)}
-                    className="w-24 text-right bg-coolgray-25 border border-coolgray-200 rounded-lg px-3 py-2 text-coolgray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500"
                     placeholder="100"
+                    unit="만원"
                   />
-                  <span className="text-coolgray-500 text-sm">만원</span>
-                </div>
-              ) : (
-                <span className="font-semibold text-coolgray-900">
-                  {formatCurrency(item.monthly_amount)}
-                </span>
-              )}
-            </div>
+                ) : (
+                  <span className="font-semibold text-coolgray-900">
+                    {formatCurrency(item.monthly_amount)}
+                  </span>
+                )}
+              </div>
 
             {/* 목표 기간 */}
             <div className="flex justify-between items-center">
               <span className="text-coolgray-500">목표 기간</span>
               {isEditMode ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={editPeriodYears}
-                    onChange={(e) => handleNumericInput(e.target.value, setEditPeriodYears)}
-                    className="w-16 text-right bg-coolgray-25 border border-coolgray-200 rounded-lg px-3 py-2 text-coolgray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    placeholder="10"
-                  />
-                  <span className="text-coolgray-500 text-sm">년</span>
-                </div>
+                <InputWithUnit
+                  value={editPeriodYears}
+                  onChange={(e) => handleNumericInput(e.target.value, setEditPeriodYears)}
+                  placeholder="10"
+                  unit="년"
+                />
               ) : (
                 <span className="font-semibold text-coolgray-900">
                   {item.period_years}년
@@ -312,14 +307,12 @@ export default function InvestmentDetailView({
               {isEditMode ? (
                 <div className="flex flex-col items-end gap-2">
                   <div className="flex items-center gap-2">
-                    <input
-                      type="text"
+                    <InputWithUnit
                       value={editAnnualRate}
                       onChange={(e) => handleRateInput(e.target.value)}
-                      className="w-16 text-right bg-coolgray-25 border border-coolgray-200 rounded-lg px-3 py-2 text-coolgray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500"
                       placeholder="10"
+                      unit="%"
                     />
-                    <span className="text-coolgray-500 text-sm">%</span>
                     {isRateManuallyEdited && parseFloat(editAnnualRate) !== originalRate && (
                       <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">직접 수정</span>
                     )}
@@ -401,13 +394,14 @@ export default function InvestmentDetailView({
                 + {formatCurrency(calculatedProfit)}
               </span>
             </div>
-            </div>
-          </section>
+              </div>
+            </section>
+          </div>
         </div>
 
         {/* 하단 버튼 - 편집 모드에서만 */}
         {isEditMode && (
-          <div className="sticky bottom-0 bg-white pt-4 pb-6">
+          <div className="sticky bottom-0 bg-white pt-4 pb-6 px-6">
             <div className="flex gap-3">
               <button
                 onClick={handleCancel}

@@ -1,0 +1,29 @@
+feat(ui): Input Group 패턴으로 단위 입력 필드 겹침 해결
+
+투자 정보 수정 화면(월 투자금, 목표 기간, 연 수익률)에서 숫자와 단위(만원, 년, %)
+가 겹치던 문제를 Input Group 패턴으로 개선했다.
+
+[배경]
+- 기존: input 위에 단위 span을 absolute로 겹쳐 두고, pr-*/right-*/w-* 조합으로
+  예약 영역을 맞추는 방식 사용
+- 숫자 길이(예: 19.16, 100)에 따라 단위와 겹침 발생, 우측 여백·간격 조정만으로
+  해결하기 어려웠음
+
+[변경 사항]
+1. InputWithUnit 컴포넌트 추가 (components/ui/input-with-unit.tsx)
+   - Input Group 패턴: input과 unit을 flex 형제로 배치
+   - 래퍼: flex, rounded-lg, border, bg-coolgray-25, focus-within:ring-2
+   - input: flex-1 min-w-0, pr-2로 숫자·단위 간격 확보
+   - unit: flex-shrink-0, pl-1 pr-2로 고정 너비·우측 여백
+   - unit prop으로 만원/년/% 등 단위 전달, 재사용 가능
+
+2. InvestmentDetailView 수정
+   - 월 투자금, 목표 기간, 연 수익률 입력을 기존 relative/absolute 구조에서
+     InputWithUnit 사용으로 교체
+   - 단위 영역이 입력과 물리적으로 분리되어 겹침 없음
+   - 숫자와 단위 간 간격 유지, 우측 정렬·스타일 기존과 동일
+
+[결과]
+- 숫자·단위 겹침 현상 제거
+- 단위 입력 필드 UI 일관성 및 가독성 향상
+- InputWithUnit으로 다른 화면에서도 단위 입력 공통 활용 가능
