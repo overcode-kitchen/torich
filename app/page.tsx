@@ -31,6 +31,8 @@ export default function Home() {
   const [isDeleting, setIsDeleting] = useState(false) // 삭제 중 상태
   const [isUpdating, setIsUpdating] = useState(false) // 수정 중 상태
   const [detailItem, setDetailItem] = useState<Investment | null>(null) // 상세 보기 아이템
+  const [isUpdatingRates, setIsUpdatingRates] = useState(false) // 수익률 갱신 중 상태
+  const [showRateUpdateToast, setShowRateUpdateToast] = useState(false) // 수익률 갱신 완료 토스트
   const [showCashHoldSheet, setShowCashHoldSheet] = useState(false) // 현금 보관 항목 시트
   const [showContributionSheet, setShowContributionSheet] = useState(false) // 월 납입 내역 시트
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE' | 'ENDED'>('ACTIVE') // 필터 상태
@@ -154,6 +156,43 @@ export default function Home() {
     return () => el.removeEventListener('scroll', handleScroll)
   }, [])
 
+  // 수익률 갱신 필요 여부 체크 및 업데이트 함수
+  const checkAndUpdateRates = async (userId: string) => {
+    try {
+      // 1. 갱신 필요 여부 확인
+      const checkResponse = await fetch(`/api/update-user-rates?userId=${userId}`)
+      const checkData = await checkResponse.json()
+
+      if (!checkData.needsUpdate) {
+        console.log('[Rate Update] 이미 최신 상태입니다.')
+        return false
+      }
+
+      console.log('[Rate Update] 갱신이 필요합니다. 업데이트 시작...')
+      setIsUpdatingRates(true)
+
+      // 2. 수익률 업데이트 실행
+      const updateResponse = await fetch('/api/update-user-rates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+      })
+      const updateData = await updateResponse.json()
+
+      if (updateData.success && updateData.updated) {
+        console.log(`[Rate Update] 완료: ${updateData.updatedRecords}개 레코드 업데이트`)
+        return true
+      }
+
+      return false
+    } catch (error) {
+      console.error('[Rate Update] 오류:', error)
+      return false
+    } finally {
+      setIsUpdatingRates(false)
+    }
+  }
+
   useEffect(() => {
     // 인증 상태 확인 및 데이터 로드
     const checkAuthAndLoadData = async () => {
@@ -172,6 +211,24 @@ export default function Home() {
             console.error('데이터 조회 오류:', error)
           } else {
             setRecords(data || [])
+          }
+
+          // 수익률 갱신 필요 여부 체크 및 업데이트
+          const wasUpdated = await checkAndUpdateRates(user.id)
+          if (wasUpdated) {
+            // 업데이트가 있었으면 데이터 다시 로드
+            const { data: refreshedData } = await supabase
+              .from('records')
+              .select('*')
+              .order('created_at', { ascending: false })
+            
+            if (refreshedData) {
+              setRecords(refreshedData)
+            }
+            
+            // 토스트 알림 표시
+            setShowRateUpdateToast(true)
+            setTimeout(() => setShowRateUpdateToast(false), 4000)
           }
         }
       } catch (error) {
@@ -238,6 +295,16 @@ export default function Home() {
     )
   }
 
+  // 수익률 갱신 중 로딩 UI (오버레이)
+  if (isUpdatingRates) {
+    return (
+      <main className="min-h-screen bg-coolgray-25 flex flex-col items-center justify-center gap-4">
+        <IconLoader2 className="w-10 h-10 animate-spin text-brand-600" />
+        <p className="text-coolgray-600 text-sm">최신 데이터 반영 중...</p>
+      </main>
+    )
+  }
+
   // 비로그인 상태: 랜딩 페이지
   if (!user) {
     return (
@@ -295,6 +362,16 @@ export default function Home() {
   // 로그인 상태: 기존 대시보드
   return (
     <main className="min-h-screen bg-coolgray-25">
+      {/* 수익률 갱신 완료 토스트 */}
+      {showRateUpdateToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-top-2 fade-in duration-300">
+          <div className="bg-white border border-coolgray-200 rounded-xl px-4 py-3 shadow-lg flex items-center gap-2">
+            <span className="text-lg">🐿️</span>
+            <span className="text-sm text-coolgray-700">지난달 시장 데이터를 반영하여 예측을 업데이트했어요!</span>
+          </div>
+        </div>
+      )}
+
       {/* 상단 헤더 */}
       <header className="h-[52px] flex items-center justify-between px-4">
         <h1 className="font-bold text-coolgray-900 text-xl">
