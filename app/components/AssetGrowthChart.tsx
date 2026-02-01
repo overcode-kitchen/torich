@@ -149,9 +149,9 @@ export default function AssetGrowthChart({
       {currentData && currentData.profit > 0 && (
         <div className="bg-brand-50 rounded-xl px-4 py-3">
           <p className="text-sm text-coolgray-700">
-            🐿️ <span className="font-medium">토리:</span> "사장님! 숨만 쉬었는데{' '}
-            <span className="font-bold text-brand-600">{formatCurrency(currentData.profit)}</span>
-            이 더 생겼어요! 💚"
+            🐿️ <span className="font-medium">토리:</span> "복리 효과로{' '}
+            <span className="font-bold text-brand-600">+{formatCurrency(currentData.profit)}</span>
+            이 자라났어요"
           </p>
         </div>
       )}

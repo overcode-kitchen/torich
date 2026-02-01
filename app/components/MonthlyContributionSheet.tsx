@@ -44,7 +44,7 @@ export default function MonthlyContributionSheet({
         {/* 헤더 */}
         <div className="flex items-center justify-between px-6 pb-4">
           <h2 className="text-lg font-bold text-coolgray-900 flex items-center gap-2">
-            🌱 이번 달 심을 씨앗들
+            📋 이번 달 투자 내역
           </h2>
           <button
             onClick={onClose}
@@ -58,7 +58,7 @@ export default function MonthlyContributionSheet({
         {/* 총액 안내 */}
         <div className="px-6 pb-4">
           <p className="text-sm text-coolgray-600">
-            총 <span className="font-bold text-coolgray-900">{formatCurrency(totalAmount)}</span>을 아래와 같이 나누어 심어요.
+            총 <span className="font-bold text-coolgray-900">{formatCurrency(totalAmount)}</span>을 아래와 같이 투자하고 있어요.
           </p>
         </div>
 

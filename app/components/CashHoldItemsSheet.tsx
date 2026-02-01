@@ -39,7 +39,7 @@ export default function CashHoldItemsSheet({
         {/* 헤더 */}
         <div className="flex items-center justify-between px-6 pb-4">
           <h2 className="text-lg font-bold text-coolgray-900 flex items-center gap-2">
-            📦 현금 보관 중인 도토리
+            📦 현금 보관 중인 투자
           </h2>
           <button
             onClick={onClose}

@@ -20,7 +20,8 @@ import InvestmentDetailView from '@/app/components/InvestmentDetailView'
 import CashHoldItemsSheet from '@/app/components/CashHoldItemsSheet'
 import MonthlyContributionSheet from '@/app/components/MonthlyContributionSheet'
 import AssetGrowthChart from '@/app/components/AssetGrowthChart'
-import { isCompleted } from '@/app/utils/date'
+import UpcomingInvestments from '@/app/components/UpcomingInvestments'
+import { isCompleted, getUpcomingPayments, getDaysUntilNextPayment } from '@/app/utils/date'
 
 export default function Home() {
   const router = useRouter()
@@ -37,7 +38,7 @@ export default function Home() {
   const [showCashHoldSheet, setShowCashHoldSheet] = useState(false) // 현금 보관 항목 시트
   const [showContributionSheet, setShowContributionSheet] = useState(false) // 월 납입 내역 시트
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE' | 'ENDED'>('ACTIVE') // 필터 상태
-  const [sortBy, setSortBy] = useState<'TOTAL_VALUE' | 'MONTHLY_PAYMENT' | 'NAME'>('TOTAL_VALUE') // 정렬 기준
+  const [sortBy, setSortBy] = useState<'TOTAL_VALUE' | 'MONTHLY_PAYMENT' | 'NAME' | 'NEXT_PAYMENT'>('TOTAL_VALUE') // 정렬 기준
   const bannerRef = useRef<HTMLDivElement | null>(null)
   const [bannerIndex, setBannerIndex] = useState<0 | 1>(0)
 
@@ -106,6 +107,19 @@ export default function Home() {
     }
   }, [records, selectedYear])
 
+  // 다가오는 투자 (7일 이내, 진행 중인 투자만)
+  const upcomingItems = useMemo(() => {
+    const activeRecords = records.filter((item) => {
+      const startDate = getStartDate(item)
+      return !isCompleted(startDate, item.period_years)
+    })
+    const payments = getUpcomingPayments(activeRecords, 7)
+    return payments.map((p) => {
+      const inv = records.find((r) => r.id === p.id)!
+      return { investment: inv, paymentDate: p.paymentDate, dayOfMonth: p.dayOfMonth }
+    })
+  }, [records])
+
   // 필터링 및 정렬된 투자 목록
   const filteredAndSortedRecords = useMemo(() => {
     let filtered = records
@@ -135,6 +149,13 @@ export default function Home() {
         return b.monthly_amount - a.monthly_amount // 내림차순
       } else if (sortBy === 'NAME') {
         return a.title.localeCompare(b.title, 'ko') // 오름차순
+      } else if (sortBy === 'NEXT_PAYMENT') {
+        const d_a = getDaysUntilNextPayment(a.investment_days)
+        const d_b = getDaysUntilNextPayment(b.investment_days)
+        if (d_a === null && d_b === null) return 0
+        if (d_a === null) return 1
+        if (d_b === null) return -1
+        return d_a - d_b // 오름차순 (가까운 결제일 먼저)
       }
       return 0
     })
@@ -322,7 +343,7 @@ export default function Home() {
             <div className="bg-white w-full rounded-[32px] px-6 py-10 shadow-sm">
               {/* 타이틀 */}
               <h2 className="text-2xl font-bold text-gray-900 leading-tight text-left mb-3 whitespace-pre-line">
-                내가 심은 작은 도토리,{'\n'}10년 뒤엔 얼마가 될까요?
+                매달 꾸준히 적립하면{'\n'}10년 뒤엔 얼마가 될까요?
               </h2>
 
               {/* 서브 텍스트 */}
@@ -476,7 +497,7 @@ export default function Home() {
                   onClick={() => setShowContributionSheet(true)}
                   className="absolute right-6 bottom-6 inline-flex items-center rounded-full border border-brand-600 bg-brand-50 text-brand-700 font-semibold text-sm px-3 py-1.5 hover:bg-brand-100 transition-colors"
                 >
-                  월 {formatCurrency(totalMonthlyPayment)}씩 심는 중
+                  월 {formatCurrency(totalMonthlyPayment)}씩 투자 중
                 </button>
               )}
             </div>
@@ -487,6 +508,11 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        {/* 다가오는 투자 섹션 */}
+        {upcomingItems.length > 0 && (
+          <UpcomingInvestments items={upcomingItems} />
+        )}
 
         {/* 투자 목록 추가하기 버튼 */}
 
@@ -551,6 +577,7 @@ export default function Home() {
                       {sortBy === 'TOTAL_VALUE' && '평가금액 순'}
                       {sortBy === 'MONTHLY_PAYMENT' && '월 투자액 순'}
                       {sortBy === 'NAME' && '이름 순'}
+                      {sortBy === 'NEXT_PAYMENT' && '다음 투자일 순'}
                       <IconChevronDown className="w-4 h-4" />
                     </button>
                   </DropdownMenuTrigger>
@@ -563,6 +590,9 @@ export default function Home() {
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setSortBy('NAME')}>
                       이름 순
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortBy('NEXT_PAYMENT')}>
+                      다음 투자일 순
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

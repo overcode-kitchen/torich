@@ -1,4 +1,4 @@
-import { differenceInMonths, addMonths, format, isBefore, isAfter } from 'date-fns'
+import { differenceInMonths, addMonths, addDays, differenceInDays, format, isBefore, isAfter } from 'date-fns'
 
 /**
  * 개월 수를 "X년 Y개월" 형태의 문자열로 변환
@@ -115,5 +115,107 @@ export function formatFullDate(date: Date): string {
 export function isCompleted(startDate: Date, periodYears: number): boolean {
   const endDate = calculateEndDate(startDate, periodYears)
   return isAfter(new Date(), endDate)
+}
+
+/** 오늘 00:00:00 기준 Date */
+function startOfToday(): Date {
+  const t = new Date()
+  return new Date(t.getFullYear(), t.getMonth(), t.getDate())
+}
+
+/**
+ * 다음 결제일까지 남은 일수 (D-Day)
+ * @param investment_days 매월 투자일 [5, 25]
+ * @returns 남은 일수 (0이면 오늘이 결제일, null이면 investment_days 미설정)
+ */
+export function getDaysUntilNextPayment(investment_days?: number[]): number | null {
+  if (!investment_days || investment_days.length === 0) return null
+  const today = startOfToday()
+  const year = today.getFullYear()
+  const month = today.getMonth()
+  const currentDay = today.getDate()
+
+  const sortedDays = [...investment_days].sort((a, b) => a - b)
+  for (const day of sortedDays) {
+    if (day > currentDay) {
+      const nextDate = new Date(year, month, day)
+      return differenceInDays(nextDate, today)
+    }
+  }
+  // 다음 달 첫 결제일
+  const nextMonthFirst = sortedDays[0]
+  const nextDate = new Date(year, month + 1, nextMonthFirst)
+  return differenceInDays(nextDate, today)
+}
+
+/**
+ * 7일 이내 결제일 목록 (investment, paymentDate, amount)[]
+ * 각 투자별로 7일 이내에 도래하는 각 결제일을 개별 항목으로 반환
+ */
+export function getUpcomingPayments(
+  items: Array<{ id: string; investment_days?: number[]; monthly_amount: number }>,
+  withinDays: number = 7
+): Array<{ id: string; paymentDate: Date; monthly_amount: number; dayOfMonth: number }> {
+  const today = startOfToday()
+  const results: Array<{ id: string; paymentDate: Date; monthly_amount: number; dayOfMonth: number }> = []
+
+  for (const item of items) {
+    const days = item.investment_days
+    if (!days || days.length === 0) continue
+
+    for (let d = 1; d <= withinDays; d++) {
+      const checkDate = addDays(today, d)
+      const dayOfMonth = checkDate.getDate()
+      if (days.includes(dayOfMonth)) {
+        results.push({
+          id: item.id,
+          paymentDate: checkDate,
+          monthly_amount: item.monthly_amount,
+          dayOfMonth,
+        })
+      }
+    }
+  }
+  return results.sort((a, b) => a.paymentDate.getTime() - b.paymentDate.getTime())
+}
+
+/**
+ * 다음 결제일 Date 반환
+ * @param investment_days 매월 투자일 [5, 25]
+ * @returns 다음 결제일 Date (null이면 investment_days 미설정)
+ */
+export function getNextPaymentDate(investment_days?: number[]): Date | null {
+  if (!investment_days || investment_days.length === 0) return null
+  const today = startOfToday()
+  const year = today.getFullYear()
+  const month = today.getMonth()
+  const currentDay = today.getDate()
+
+  const sortedDays = [...investment_days].sort((a, b) => a - b)
+  for (const day of sortedDays) {
+    if (day > currentDay) {
+      return new Date(year, month, day)
+    }
+  }
+  const nextMonthFirst = sortedDays[0]
+  return new Date(year, month + 1, nextMonthFirst)
+}
+
+/**
+ * 다음 결제일을 "M/d" 형식으로 포맷 (예: "2/25")
+ */
+export function formatNextPaymentDate(date: Date): string {
+  return `${date.getMonth() + 1}/${date.getDate()}`
+}
+
+/**
+ * 결제일을 "M/d (요일)" 형식으로 포맷 (예: "2/5 (수)")
+ */
+export function formatPaymentDateShort(date: Date): string {
+  const m = date.getMonth() + 1
+  const d = date.getDate()
+  const weekdays = ['일', '월', '화', '수', '목', '금', '토']
+  const w = weekdays[date.getDay()]
+  return `${m}/${d} (${w})`
 }
 
