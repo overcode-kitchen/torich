@@ -3,6 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { IconArrowLeft, IconLoader2, IconInfoCircle, IconX } from '@tabler/icons-react'
+import { ChevronDownIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { createClient } from '@/utils/supabase/client'
 import { formatCurrency } from '@/lib/utils'
 // import { sendGAEvent } from '@next/third-parties/google'
@@ -27,11 +31,8 @@ export default function AddInvestmentPage() {
   const [stockName, setStockName] = useState('')
   const [monthlyAmount, setMonthlyAmount] = useState('')
   const [period, setPeriod] = useState('')
-  const [startDate, setStartDate] = useState(() => {
-    // 기본값: 오늘 날짜 (YYYY-MM-DD 형식)
-    const today = new Date()
-    return today.toISOString().split('T')[0]
-  })
+  const [startDate, setStartDate] = useState<Date>(() => new Date())
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false)
   const [investmentDays, setInvestmentDays] = useState<number[]>([]) // 매월 투자하는 날짜들
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
@@ -303,7 +304,7 @@ export default function AddInvestmentPage() {
       console.log(`- isManualInput: ${isManualInput}`)
       console.log(`- originalSystemRate: ${originalSystemRate}`)
       console.log(`- annualRate !== originalSystemRate: ${originalSystemRate !== null && annualRate !== originalSystemRate}`)
-      console.log(`투자 시작일: ${startDate}`)
+      console.log(`투자 시작일: ${startDate.toISOString().split('T')[0]}`)
       console.log(`매월 투자일: ${investmentDays.length > 0 ? investmentDays.join(', ') + '일' : '미설정'}`)
       console.log('===========================')
 
@@ -318,7 +319,7 @@ export default function AddInvestmentPage() {
           period_years: periodYearsNum,
           annual_rate: annualRate, // 실제 조회된 수익률 저장
           final_amount: finalAmount,
-          start_date: startDate, // 투자 시작일
+          start_date: startDate.toISOString().split('T')[0], // 투자 시작일
           investment_days: investmentDays.length > 0 ? investmentDays : null, // 매월 투자일
           is_custom_rate: isCustomRate, // 직접 입력 여부
         })
@@ -812,17 +813,34 @@ export default function AddInvestmentPage() {
           </div>
 
           {/* 투자 시작일 입력 */}
-          <div>
-            <label className="block text-sm font-medium text-coolgray-700 mb-2">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-coolgray-700 px-1">
               투자 시작일
             </label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full bg-white rounded-2xl p-5 text-coolgray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-            />
-            <p className="text-xs text-coolgray-400 mt-1">
+            <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-between font-normal bg-white rounded-2xl h-14 px-5 text-coolgray-900 border-coolgray-100 hover:bg-coolgray-25"
+                >
+                  {startDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  <ChevronDownIcon className="w-5 h-5 text-coolgray-400" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={(date) => {
+                    if (date) {
+                      setStartDate(date)
+                      setIsDatePickerOpen(false)
+                    }
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
+            <p className="text-xs text-coolgray-400 px-1">
               투자를 시작한 날짜를 선택하세요. 기본값은 오늘입니다.
             </p>
           </div>
