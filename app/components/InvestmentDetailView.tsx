@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { formatCurrency } from '@/lib/utils'
-import { IconArrowLeft, IconPencil, IconTrash, IconCheck, IconX, IconInfoCircle, IconDotsVertical } from '@tabler/icons-react'
+import { IconArrowLeft, IconPencil, IconTrash, IconCheck, IconX, IconInfoCircle, IconDotsVertical, IconBell, IconBellOff } from '@tabler/icons-react'
 import { Investment, getStartDate, formatInvestmentDays } from '@/app/types/investment'
 import InvestmentDaysPickerSheet from '@/app/components/InvestmentDaysPickerSheet'
 import InvestmentEditSheet, { type RateSuggestion } from '@/app/components/InvestmentEditSheet'
@@ -58,8 +58,11 @@ export default function InvestmentDetailView({
   isUpdating = false,
   calculateFutureValue,
 }: InvestmentDetailViewProps) {
+  const STORAGE_KEY_PREFIX = 'torich_notification_'
+
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
+  const [notificationOn, setNotificationOn] = useState(true)
   
   // 수정 가능한 필드들
   const [editMonthlyAmount, setEditMonthlyAmount] = useState('')
@@ -76,6 +79,22 @@ export default function InvestmentDetailView({
     { label: '⚡️ 10년 평균 {rate}', rate: originalRate },
   ]
   const isCustomRate = !!item.is_custom_rate
+
+  // 알림 상태 로컬 스토리지에서 로드
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`${STORAGE_KEY_PREFIX}${item.id}`)
+      setNotificationOn(stored === null ? true : stored === '1')
+    }
+  }, [item.id])
+
+  const toggleNotification = () => {
+    const next = !notificationOn
+    setNotificationOn(next)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`${STORAGE_KEY_PREFIX}${item.id}`, next ? '1' : '0')
+    }
+  }
 
   // 수정 모드 진입 시 현재 값으로 초기화
   useEffect(() => {
@@ -186,23 +205,36 @@ export default function InvestmentDetailView({
       <header className="h-[52px] flex items-center justify-between px-4 bg-white sticky top-0 z-10">
         <button
           onClick={onBack}
-          className="p-2 text-coolgray-700 hover:text-coolgray-900 transition-colors"
+          className="p-2 text-coolgray-800 hover:text-coolgray-900 transition-colors"
           aria-label="뒤로가기"
         >
-          <IconArrowLeft className="w-6 h-6" />
+          <IconArrowLeft className="w-6 h-6" stroke={1.5} />
         </button>
 
         {!isEditMode && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="p-2 text-coolgray-700 hover:text-coolgray-900 transition-colors"
-                aria-label="메뉴"
-              >
-                <IconDotsVertical className="w-6 h-6" />
-              </button>
-            </DropdownMenuTrigger>
+          <div className="flex items-center -mr-1">
+            <button
+              type="button"
+              onClick={toggleNotification}
+              className="p-2 text-coolgray-800 hover:text-coolgray-900 transition-colors"
+              aria-label={notificationOn ? '알림 끄기' : '알림 켜기'}
+            >
+              {notificationOn ? (
+                <IconBell className="w-6 h-6" stroke={1.5} />
+              ) : (
+                <IconBellOff className="w-6 h-6 text-coolgray-500" stroke={1.5} />
+              )}
+            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="p-2 text-coolgray-800 hover:text-coolgray-900 transition-colors"
+                  aria-label="메뉴"
+                >
+                  <IconDotsVertical className="w-6 h-6" stroke={1.5} />
+                </button>
+              </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-[140px]">
               <DropdownMenuItem onClick={() => setIsEditMode(true)}>
                 수정하기
@@ -214,7 +246,8 @@ export default function InvestmentDetailView({
                 삭제하기
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+            </DropdownMenu>
+          </div>
         )}
       </header>
 
@@ -223,48 +256,35 @@ export default function InvestmentDetailView({
         {/* 메인 카드(p-6)와 동일한 내부 여백(24px) */}
         <div className="px-6">
           <div className="divide-y divide-coolgray-100">
-            {/* 종목명 & 상태 */}
-            <section className="py-5">
-              <h2 className="text-2xl font-bold text-coolgray-900 mb-2">
-                {item.title}
-              </h2>
-              {isEditMode ? (
-                <p className="text-sm text-coolgray-400">종목명은 수정할 수 없습니다</p>
-              ) : (
-                <p className={`text-lg ${completed ? 'text-green-600' : 'text-brand-600'} font-semibold`}>
-                  {completed ? '목표 달성! 🎉' : elapsedText}
-                </p>
+            {/* 종목명 & 상태 + 다음 투자일 */}
+            <section className="py-5 space-y-4">
+              <div>
+                <h2 className="text-2xl font-bold text-coolgray-900 mb-2">
+                  {item.title}
+                </h2>
+                {isEditMode ? (
+                  <p className="text-sm text-coolgray-400">종목명은 수정할 수 없습니다</p>
+                ) : (
+                  <p className={`text-lg ${completed ? 'text-green-600' : 'text-brand-600'} font-semibold`}>
+                    {completed ? '목표 달성! 🎉' : elapsedText}
+                  </p>
+                )}
+              </div>
+              {!isEditMode && nextPaymentDate && (
+                <div className="py-4 bg-brand-50 rounded-xl px-4 -mx-1">
+                  <p className="text-sm text-coolgray-600 mb-0.5">다음 투자일</p>
+                  <p className="text-xl font-bold text-brand-600">
+                    📅 {formatNextPaymentDate(nextPaymentDate)}
+                  </p>
+                </div>
               )}
             </section>
-
-            {/* 다음 투자일 (상단 강조) */}
-            {!isEditMode && nextPaymentDate && (
-              <section className="py-4 bg-brand-50 rounded-xl px-4 -mx-1">
-                <p className="text-sm text-coolgray-600 mb-0.5">다음 투자일</p>
-                <p className="text-xl font-bold text-brand-600">
-                  📅 {formatNextPaymentDate(nextPaymentDate)}
-                </p>
-              </section>
-            )}
-
-            {/* 매월 투자일 (강조) */}
-            {!isEditMode ? (
-              <section className="py-5">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-lg">📅</span>
-                  <h3 className="text-base font-bold text-coolgray-900">매월 투자일</h3>
-                </div>
-                <p className="text-lg font-semibold text-coolgray-900">
-                  {formatInvestmentDays(item.investment_days)}
-                </p>
-              </section>
-            ) : null}
 
             {/* 투자 히스토리 (최근 6개월) - 테이블 형식 */}
             {!isEditMode && paymentHistory.length > 0 && (
               <section className="py-5">
                 <h3 className="text-sm font-bold text-coolgray-900 mb-3">월별 납입 기록</h3>
-                <div className="overflow-x-auto rounded-lg border border-coolgray-200">
+                <div className="overflow-x-auto rounded-lg">
                   <Table>
                     <TableHeader>
                       <TableRow className="border-coolgray-200 hover:bg-transparent">
@@ -275,12 +295,15 @@ export default function InvestmentDetailView({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paymentHistory.map(({ monthLabel, completed: monthCompleted }) => (
-                        <TableRow key={monthLabel} className="border-coolgray-100">
+                      {paymentHistory.map(({ monthLabel, yearMonth, completed: monthCompleted }) => (
+                        <TableRow key={yearMonth} className="border-coolgray-100">
                           <TableCell className="font-medium text-coolgray-900">{monthLabel}</TableCell>
-                          <TableCell className="text-coolgray-600">
+                          <TableCell className="text-coolgray-600 text-xs">
                             {item.investment_days && item.investment_days.length > 0
-                              ? [...item.investment_days].sort((a, b) => a - b).map((d) => `${d}일`).join(', ')
+                              ? [...item.investment_days].sort((a, b) => a - b).map((d) => {
+                                  const [y, m] = yearMonth.split('-')
+                                  return `${y}.${m}.${String(d).padStart(2, '0')}`
+                                }).join(', ')
                               : '-'}
                           </TableCell>
                           <TableCell className="text-coolgray-600">
@@ -431,11 +454,11 @@ export default function InvestmentDetailView({
               </div>
             )}
 
-            {/* 매월 투자일 (수정 모드에서만 - 표시 모드는 상단에 별도 표시) */}
+            {/* 매월 투자일 */}
             {isEditMode ? (
               <div className="space-y-1.5">
                 <label className="block text-coolgray-900 font-bold text-sm">
-                  📅 매월 투자일
+                  매월 투자일
                 </label>
                 <div className="flex flex-wrap gap-1.5">
                   {[...editInvestmentDays].sort((a, b) => a - b).map((day) => (
@@ -462,7 +485,14 @@ export default function InvestmentDetailView({
                   </button>
                 </div>
               </div>
-            ) : null}
+            ) : (
+              <div className="flex justify-between items-center">
+                <span className="text-coolgray-500">매월 투자일</span>
+                <span className="font-semibold text-coolgray-900">
+                  {formatInvestmentDays(item.investment_days)}
+                </span>
+              </div>
+            )}
 
             <div className="border-t border-coolgray-100 my-2" />
             
