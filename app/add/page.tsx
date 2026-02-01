@@ -270,6 +270,10 @@ export default function AddInvestmentPage() {
       router.push('/login')
       return
     }
+    if (investmentDays.length === 0) {
+      alert('매월 투자일을 선택해주세요. 알림을 받을 날짜를 선택하면 투자 일정을 쉽게 관리할 수 있어요.')
+      return
+    }
 
     try {
       setIsSubmitting(true)
@@ -823,12 +827,19 @@ export default function AddInvestmentPage() {
             </p>
           </div>
 
-          {/* 매월 투자일 선택 */}
-          <div>
-            <label className="block text-sm font-medium text-coolgray-700 mb-2">
-              매월 투자일 (선택)
-            </label>
-            <div className="bg-white rounded-2xl p-4">
+          {/* 매월 투자일 선택 - 강조 */}
+          <div className={`rounded-2xl p-4 border-2 transition-colors ${
+            investmentDays.length === 0 
+              ? 'bg-brand-50 border-brand-200' 
+              : 'bg-white border-coolgray-100'
+          }`}>
+            <p className="text-sm font-semibold text-coolgray-900 mb-1">
+              📅 매월 투자일
+            </p>
+            <p className="text-xs text-coolgray-500 mb-3">
+              알림을 받을 날짜를 선택하세요. 투자 일정 관리에 필수입니다.
+            </p>
+            <div className="bg-white rounded-xl p-4 border border-coolgray-100">
               {/* 선택된 날짜 표시 */}
               {investmentDays.length > 0 && (
                 <div className="mb-3 flex flex-wrap gap-2">
@@ -873,9 +884,11 @@ export default function AddInvestmentPage() {
                 ))}
               </div>
             </div>
-            <p className="text-xs text-coolgray-400 mt-1">
-              매월 투자하는 날짜를 선택하세요. 여러 날 선택 가능합니다.
-            </p>
+            {investmentDays.length === 0 && (
+              <p className="text-xs text-amber-600 font-medium mt-2">
+                ⚠️ 매월 투자일을 선택하면 예정된 납입일을 한눈에 확인할 수 있어요.
+              </p>
+            )}
           </div>
         </form>
 
