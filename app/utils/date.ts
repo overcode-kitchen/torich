@@ -149,8 +149,8 @@ export function getDaysUntilNextPayment(investment_days?: number[]): number | nu
 }
 
 /**
- * 7일 이내 결제일 목록 (investment, paymentDate, amount)[]
- * 각 투자별로 7일 이내에 도래하는 각 결제일을 개별 항목으로 반환
+ * N일 이내 결제일 목록 (investment, paymentDate, amount)[]
+ * @param withinDays 1=오늘만, 7=오늘 포함 7일, 365=1년 등
  */
 export function getUpcomingPayments(
   items: Array<{ id: string; investment_days?: number[]; monthly_amount: number }>,
@@ -158,13 +158,55 @@ export function getUpcomingPayments(
 ): Array<{ id: string; paymentDate: Date; monthly_amount: number; dayOfMonth: number }> {
   const today = startOfToday()
   const results: Array<{ id: string; paymentDate: Date; monthly_amount: number; dayOfMonth: number }> = []
+  const daysToCheck = Math.max(0, withinDays)
 
   for (const item of items) {
     const days = item.investment_days
     if (!days || days.length === 0) continue
 
-    for (let d = 1; d <= withinDays; d++) {
+    for (let d = 0; d < daysToCheck; d++) {
       const checkDate = addDays(today, d)
+      const dayOfMonth = checkDate.getDate()
+      if (days.includes(dayOfMonth)) {
+        results.push({
+          id: item.id,
+          paymentDate: checkDate,
+          monthly_amount: item.monthly_amount,
+          dayOfMonth,
+        })
+      }
+    }
+  }
+  return results.sort((a, b) => a.paymentDate.getTime() - b.paymentDate.getTime())
+}
+
+/** 날짜 00:00:00 기준 */
+function startOfDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+}
+
+/**
+ * 날짜 범위 내 결제일 목록
+ * @param fromDate 시작일 (포함)
+ * @param toDate 종료일 (포함)
+ */
+export function getUpcomingPaymentsInRange(
+  items: Array<{ id: string; investment_days?: number[]; monthly_amount: number }>,
+  fromDate: Date,
+  toDate: Date
+): Array<{ id: string; paymentDate: Date; monthly_amount: number; dayOfMonth: number }> {
+  const from = startOfDay(fromDate)
+  const to = startOfDay(toDate)
+  const daysToCheck = Math.max(0, differenceInDays(to, from) + 1)
+  const results: Array<{ id: string; paymentDate: Date; monthly_amount: number; dayOfMonth: number }> = []
+
+  for (const item of items) {
+    const days = item.investment_days
+    if (!days || days.length === 0) continue
+
+    for (let d = 0; d < daysToCheck; d++) {
+      const checkDate = addDays(from, d)
+      if (checkDate > to) break
       const dayOfMonth = checkDate.getDate()
       if (days.includes(dayOfMonth)) {
         results.push({
@@ -218,4 +260,3 @@ export function formatPaymentDateShort(date: Date): string {
   const w = weekdays[date.getDay()]
   return `${m}/${d} (${w})`
 }
-
