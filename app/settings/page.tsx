@@ -154,15 +154,16 @@ export default function SettingsPage() {
               className="bg-white rounded-t-3xl max-h-[80vh] max-w-md mx-auto w-full shadow-xl flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="mx-auto mt-3 mb-3 h-1 w-10 rounded-full bg-coolgray-200" />
-              <div className="px-6 pb-6 pt-1 overflow-y-auto">
+              <div className="mx-auto mt-3 mb-3 h-1 w-10 rounded-full bg-coolgray-200 shrink-0" />
+              <div className="flex-1 overflow-y-auto scrollbar-thin px-6 pb-4 pt-1 min-h-0">
                 <div className="mb-4">
-                  <div className="relative w-full h-56 rounded-2xl overflow-hidden bg-coolgray-50">
+                  <div className="relative w-full">
                     <Image
                       src="/torich-squirrel.png"
                       alt="도토리를 모으는 토리치 람쥐 일러스트"
-                      fill
-                      className="object-cover"
+                      width={368}
+                      height={460}
+                      className="w-full h-auto rounded-xl"
                       priority
                     />
                   </div>
@@ -190,16 +191,16 @@ export default function SettingsPage() {
                     </ul>
                   </div>
                 </div>
-                <div className="mt-5">
-                  <Button
-                    type="button"
-                    onClick={() => setIsBrandStoryOpen(false)}
-                    size="lg"
-                    className="w-full"
-                  >
-                    닫기
-                  </Button>
-                </div>
+              </div>
+              <div className="shrink-0 px-6 pb-6 pt-4 bg-white rounded-b-3xl">
+                <Button
+                  type="button"
+                  onClick={() => setIsBrandStoryOpen(false)}
+                  size="lg"
+                  className="w-full"
+                >
+                  닫기
+                </Button>
               </div>
             </div>
           </div>
