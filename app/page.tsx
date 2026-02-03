@@ -1,10 +1,12 @@
+"'use client'\n\nimport { useState, useEffect, useMemo } from 'react'\nimport Image from 'next/image'\nimport { useRouter } from 'next/navigation'\nimport Link from 'next/link'\nimport { createClient } from '@/utils/supabase/client'\nimport { IconPlus, IconLoader2, IconChevronDown } from '@tabler/icons-react'\nimport { Button } from '@/components/ui/button'\nimport {\n  DropdownMenu,\n  DropdownMenuTrigger,\n  DropdownMenuContent,\n  DropdownMenuItem,\n} from '@/components/ui/dropdown-menu'"
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
-import { IconPlus, IconLogout, IconUser, IconLoader2, IconInfoCircle, IconChevronDown } from '@tabler/icons-react'
+import { IconPlus, IconLoader2, IconChevronDown, IconX } from '@tabler/icons-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -18,12 +20,8 @@ import { formatCurrency } from '@/lib/utils'
 import { Investment, getStartDate } from '@/app/types/investment'
 import InvestmentItem from '@/app/components/InvestmentItem'
 import InvestmentDetailView from '@/app/components/InvestmentDetailView'
-import CashHoldItemsSheet from '@/app/components/CashHoldItemsSheet'
-import MonthlyContributionSheet from '@/app/components/MonthlyContributionSheet'
-import AssetGrowthChart from '@/app/components/AssetGrowthChart'
 import UpcomingInvestments from '@/app/components/UpcomingInvestments'
 import { isCompleted, getDaysUntilNextPayment } from '@/app/utils/date'
-import { getThisMonthStats } from '@/app/utils/stats'
 
 export default function Home() {
   const router = useRouter()
@@ -31,20 +29,33 @@ export default function Home() {
   const [records, setRecords] = useState<Investment[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const [selectedYear, setSelectedYear] = useState<number>(1) // 기본값: 1년
   const [isDeleting, setIsDeleting] = useState(false) // 삭제 중 상태
   const [isUpdating, setIsUpdating] = useState(false) // 수정 중 상태
   const [detailItem, setDetailItem] = useState<Investment | null>(null) // 상세 보기 아이템
   const [isUpdatingRates, setIsUpdatingRates] = useState(false) // 수익률 갱신 중 상태
   const [showRateUpdateToast, setShowRateUpdateToast] = useState(false) // 수익률 갱신 완료 토스트
-  const [showCashHoldSheet, setShowCashHoldSheet] = useState(false) // 현금 보관 항목 시트
-  const [showContributionSheet, setShowContributionSheet] = useState(false) // 월 납입 내역 시트
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE' | 'ENDED'>('ACTIVE') // 필터 상태
   const [sortBy, setSortBy] = useState<'TOTAL_VALUE' | 'MONTHLY_PAYMENT' | 'NAME' | 'NEXT_PAYMENT'>('TOTAL_VALUE') // 정렬 기준
-  const bannerRef = useRef<HTMLDivElement | null>(null)
-  const [bannerIndex, setBannerIndex] = useState<0 | 1>(0)
+  const [showMonthlyAmount, setShowMonthlyAmount] = useState(true)
+  const [isBrandStoryOpen, setIsBrandStoryOpen] = useState(false)
+  const [showBrandStoryCard, setShowBrandStoryCard] = useState(true)
 
   const supabase = createClient()
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('torich_show_monthly_amount')
+      setShowMonthlyAmount(stored === null ? true : stored === '1')
+    }
+  }, [])
+
+  const toggleMonthlyAmountVisibility = () => {
+    const next = !showMonthlyAmount
+    setShowMonthlyAmount(next)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('torich_show_monthly_amount', next ? '1' : '0')
+    }
+  }
 
   // 시뮬레이션 기반 복리 계산 헬퍼 함수
   // T: 사용자가 선택한 연도, P: 투자 만기, R: 연이율
@@ -75,39 +86,10 @@ export default function Home() {
     return maturityValue
   }
 
-  // 선택된 연도 기준 자산 계산
-  const { totalExpectedAsset, totalMonthlyPayment, hasMaturedInvestments } = useMemo(() => {
-    if (records.length === 0) {
-      return {
-        totalExpectedAsset: 0,
-        totalMonthlyPayment: 0,
-        hasMaturedInvestments: false
-      }
-    }
-
-    // 모든 투자를 selectedYear(T) 기준으로 시뮬레이션하여 합산
-    const totalExpectedAsset = records.reduce((sum, record) => {
-      const T = selectedYear // 사용자 선택 연도
-      const P = record.period_years // 투자 만기
-      const R = record.annual_rate ? record.annual_rate / 100 : 0.10 // 연이율 (기본 10%)
-      
-      return sum + calculateSimulatedValue(record.monthly_amount, T, P, R)
-    }, 0)
-
-    // 실제 매월 납입하는 총액 (모든 투자의 월 납입액 합계)
-    const totalMonthlyPayment = records.reduce((sum, record) => {
-      return sum + record.monthly_amount
-    }, 0)
-
-    // 선택한 기간보다 만기가 짧은 투자가 있는지 확인
-    const hasMaturedInvestments = records.some(record => record.period_years < selectedYear)
-
-    return {
-      totalExpectedAsset,
-      totalMonthlyPayment,
-      hasMaturedInvestments
-    }
-  }, [records, selectedYear])
+  // 월 납입 총액
+  const totalMonthlyPayment = useMemo(() => {
+    return records.reduce((sum, record) => sum + record.monthly_amount, 0)
+  }, [records])
 
   // 이번 달 납입 현황 (진행 중인 투자만)
   const activeRecords = useMemo(() => {
@@ -116,8 +98,6 @@ export default function Home() {
       return !isCompleted(start, r.period_years)
     })
   }, [records])
-  const thisMonthStats = useMemo(() => getThisMonthStats(activeRecords), [activeRecords])
-
 
   // 필터링 및 정렬된 투자 목록
   const filteredAndSortedRecords = useMemo(() => {
@@ -161,21 +141,6 @@ export default function Home() {
 
     return sorted
   }, [records, filterStatus, sortBy, calculateSimulatedValue])
-
-  useEffect(() => {
-    const el = bannerRef.current
-    if (!el) return
-
-    const handleScroll = () => {
-      const width = el.clientWidth || 1
-      const next = Math.max(0, Math.min(1, Math.round(el.scrollLeft / width))) as 0 | 1
-      setBannerIndex(next)
-    }
-
-    handleScroll()
-    el.addEventListener('scroll', handleScroll, { passive: true })
-    return () => el.removeEventListener('scroll', handleScroll)
-  }, [])
 
   // 수익률 갱신 필요 여부 체크 및 업데이트 함수
   const checkAndUpdateRates = async (userId: string) => {
@@ -395,155 +360,142 @@ export default function Home() {
 
       {/* 상단 헤더 */}
       <header className="h-[52px] flex items-center justify-between px-4">
-        <h1 className="font-bold text-coolgray-900 text-xl">
+        <h1 className="text-xl font-semibold tracking-tight text-coolgray-900">
           티끌모아 태산
         </h1>
-        <div className="flex items-center gap-3">
-          {/* 유저 프로필 UI */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center">
-              <IconUser className="w-4 h-4 text-brand-600" />
-            </div>
-            <span className="text-sm text-coolgray-700 hidden sm:inline">
-              {user.email?.split('@')[0] || '사용자'}
-            </span>
-          </div>
-          <button
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-            className="p-2 text-coolgray-700 hover:text-coolgray-900 transition-colors disabled:opacity-50"
-            aria-label="로그아웃"
-          >
-            <IconLogout className="w-5 h-5" />
-          </button>
-        </div>
       </header>
 
-      <div className="max-w-md mx-auto px-4 py-4 space-y-3">
-        {/* 상단 배너 (2장 가로 스크롤) */}
-        <div className="relative overflow-hidden rounded-3xl">
-          {/* 페이지네이션 점 (우측 상단) */}
-          <div className="absolute right-4 top-4 z-10 flex items-center gap-2">
-            <button
-              type="button"
-              aria-label="배너 1"
-              onClick={() => bannerRef.current?.scrollTo({ left: 0, behavior: 'smooth' })}
-              className={`h-2 w-2 rounded-full transition-colors ${bannerIndex === 0 ? 'bg-brand-600' : 'bg-coolgray-200'}`}
-            />
-            <button
-              type="button"
-              aria-label="배너 2"
-              onClick={() => {
-                const el = bannerRef.current
-                if (!el) return
-                el.scrollTo({ left: el.clientWidth, behavior: 'smooth' })
-              }}
-              className={`h-2 w-2 rounded-full transition-colors ${bannerIndex === 1 ? 'bg-brand-600' : 'bg-coolgray-200'}`}
-            />
-          </div>
-
-          <div
-            ref={bannerRef}
-            className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            {/* 배너 1: 예상 자산 */}
-            <div className="min-w-full snap-start bg-white p-6 relative">
-              <div className="space-y-3 pb-12">
-                <div className="flex items-center gap-3 text-coolgray-700 text-lg font-medium">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        className="focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-coolgray-200 border-coolgray-200 hover:border-coolgray-300"
-                      >
-                        {selectedYear}년 뒤
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-[120px]">
-                      <DropdownMenuItem onClick={() => setSelectedYear(1)}>1년 뒤</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setSelectedYear(3)}>3년 뒤</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setSelectedYear(5)}>5년 뒤</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setSelectedYear(10)}>10년 뒤</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setSelectedYear(30)}>30년 뒤</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <span className="text-coolgray-700 font-semibold">예상 자산</span>
-                </div>
-
-                <div className="text-coolgray-900 text-2xl font-extrabold tracking-tight leading-tight">
-                  {user && records.length > 0
-                    ? formatCurrency(totalExpectedAsset)
-                    : '0만원'}
-                </div>
-
-                {/* 만기 안내 문구 - 클릭하면 상세 시트 오픈 */}
-                {hasMaturedInvestments && records.length > 0 && (
-                  <button
-                    onClick={() => setShowCashHoldSheet(true)}
-                    className="flex items-center gap-1.5 w-full text-left group"
-                  >
-                    <IconInfoCircle className="w-4 h-4 text-coolgray-400 flex-shrink-0 group-hover:text-coolgray-500 transition-colors" />
-                    <p className="text-xs text-coolgray-400 leading-relaxed group-hover:text-coolgray-500 transition-colors">
-                      만기가 지난 상품은 현금으로 보관한다고 가정했어요.
-                    </p>
-                  </button>
-                )}
-              </div>
-
-              {/* 월 납입 요약 pill (우측 하단) */}
-              {records.length > 0 && (
-                <button
-                  onClick={() => setShowContributionSheet(true)}
-                  className="absolute right-6 bottom-6 inline-flex items-center rounded-full border border-brand-600 bg-brand-50 text-brand-700 font-semibold text-sm px-3 py-1.5 hover:bg-brand-100 transition-colors"
-                >
-                  월 {formatCurrency(totalMonthlyPayment)}씩 투자 중
-                </button>
-              )}
-            </div>
-
-            {/* 배너 2: 임시 텍스트 */}
-            <div className="min-w-full snap-start bg-white p-6 flex items-center justify-center">
-              <p className="text-coolgray-700 font-semibold">2번째 배너입니다.</p>
-            </div>
-          </div>
-        </div>
-
+      <div className="max-w-md mx-auto px-4 py-4 space-y-4">
         {/* 다가오는 투자 섹션 */}
         {activeRecords.length > 0 && (
           <UpcomingInvestments records={activeRecords} />
         )}
 
         {/* 투자 목록 추가하기 버튼 */}
-
         <button 
           onClick={() => {
             // sendGAEvent('event', 'click_add_investment_start')
             router.push('/add')
           }}
-          className="w-full bg-brand-600 text-white font-bold rounded-2xl py-4 flex items-center justify-center gap-2 hover:bg-brand-700 transition-colors"
+          className="w-full bg-brand-600 text-white font-semibold rounded-2xl py-4 flex items-center justify-center gap-2 hover:bg-brand-700 transition-colors shadow-sm"
         >
           <IconPlus className="w-5 h-5" />
           투자 목록 추가하기
         </button>
 
-        {/* 이번 달 현황 카드 (간략) - 탭 시 /stats 이동 */}
-        {records.length > 0 && thisMonthStats.total > 0 && (
-          <Link
-            href="/stats"
-            className="block bg-white rounded-2xl p-4 border border-coolgray-100 hover:border-coolgray-200 transition-colors"
+        {/* 이번 달 투자금액 (금액만 가리기 가능) */}
+        {records.length > 0 && totalMonthlyPayment > 0 && (
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-coolgray-50 bg-white px-4 py-3">
+            <p className="text-sm font-medium text-coolgray-500">이번 달 투자금액</p>
+            <div className="flex items-center gap-2">
+              <span className="text-base font-semibold text-coolgray-900">
+                {showMonthlyAmount ? formatCurrency(totalMonthlyPayment) : '••••••'}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                onClick={toggleMonthlyAmountVisibility}
+                className="text-coolgray-500 hover:text-coolgray-700 hover:bg-coolgray-100 h-auto py-1 px-2"
+              >
+                {showMonthlyAmount ? '가리기' : '보기'}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* 브랜드 스토리 - 텍스트만 보이고 바텀시트로 바로 오픈 (닫으면 메인에서 숨김) */}
+        {showBrandStoryCard && (
+          <div className="w-full flex items-center justify-between rounded-2xl bg-white px-4 py-3 border border-coolgray-50">
+            <button
+              type="button"
+              onClick={() => setIsBrandStoryOpen(true)}
+              className="flex-1 flex flex-col items-start text-left"
+            >
+              <span className="text-coolgray-900 font-medium">토리치가 궁금하다면</span>
+              <span className="text-sm text-coolgray-500 mt-0.5">
+                이름에 담긴 의미와 우리가 추구하는 방향을 소개해요.
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowBrandStoryCard(false)}
+              className="ml-2 p-1 text-coolgray-400 hover:text-coolgray-700 transition-colors"
+              aria-label="브랜드 스토리 카드 닫기"
+            >
+              <IconX className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* 브랜드 스토리 바텀시트 (홈) */}
+        {isBrandStoryOpen && (
+          <div
+            className="fixed inset-0 z-50 flex flex-col justify-end bg-black/30 backdrop-blur-sm"
+            role="dialog"
+            aria-modal="true"
+            aria-label="토리치 브랜드 스토리"
+            onClick={() => setIsBrandStoryOpen(false)}
           >
-            <p className="text-sm font-semibold text-coolgray-700 mb-1">이번 달 납입</p>
-            <p className="text-lg font-bold text-coolgray-900">
-              {thisMonthStats.total}건 중 {thisMonthStats.completed}건 완료
-            </p>
-            <p className="text-xs text-coolgray-500 mt-1">자세히 보기 →</p>
-          </Link>
+            <div
+              className="bg-white rounded-t-3xl max-h-[80vh] max-w-md mx-auto w-full shadow-xl flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mx-auto mt-3 mb-3 h-1 w-10 rounded-full bg-coolgray-200" />
+              <div className="px-6 pb-6 pt-1 overflow-y-auto">
+                <div className="mb-4">
+                  <div className="relative w-full h-56 rounded-2xl overflow-hidden bg-coolgray-50">
+                    <Image
+                      src="/torich-squirrel.png"
+                      alt="도토리를 모으는 토리치 람쥐 일러스트"
+                      fill
+                      className="object-cover"
+                      priority
+                    />
+                  </div>
+                </div>
+                <h2 className="text-lg font-semibold text-coolgray-900 mb-3">
+                  토리치(Torich)는 &quot;(도)토리 + 리치&quot;의 합성어예요.
+                </h2>
+                <div className="space-y-3 text-base leading-relaxed text-coolgray-700">
+                  <p>
+                    도토리를 조금씩 모으듯, 작은 투자와 저축이 쌓여 언젠가 &quot;리치&quot;한 삶으로 이어진다는
+                    믿음에서 시작된 이름이에요. 한 번에 큰 결심을 요구하기보다는, 오늘 할 수 있는 가장 작고 부드러운
+                    한 걸음을 도와주는 투자 동반자를 지향합니다.
+                  </p>
+                  <p>
+                    토리치는 어려운 전문 용어보다 &quot;적립식 투자&quot;를 쉽게 시작하고, 꾸준히 이어갈 수 있게
+                    도와주는 서비스예요. 캘린더와 그래프, 목표 금액과 투자 기록을 통해 &quot;나는 얼마나 잘 쌓아가고
+                    있는가&quot;를 한눈에 확인할 수 있도록 설계했어요.
+                  </p>
+                  <div className="pt-1">
+                    <p className="text-coolgray-900 font-medium mb-1">우리가 사용자에게 바라는 것</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      <li>단기 수익보다, 내가 원하는 삶의 속도와 방향을 먼저 떠올리기</li>
+                      <li>완벽한 투자자가 되기보다, 꾸준한 투자자가 되기</li>
+                      <li>숫자에 쫓기지 않고, 숫자를 통해 마음이 편안해지는 경험을 쌓기</li>
+                    </ul>
+                  </div>
+                </div>
+                <div className="mt-5">
+                  <Button
+                    type="button"
+                    onClick={() => setIsBrandStoryOpen(false)}
+                    size="lg"
+                    className="w-full"
+                  >
+                    닫기
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* 내 투자 목록 카드 */}
         {records.length > 0 ? (
             <div className="bg-white rounded-3xl p-6">
-              <h2 className="text-lg font-bold text-coolgray-900 mb-4">
+              <h2 className="text-lg font-semibold tracking-tight text-coolgray-900 mb-4">
                 내 투자 목록
               </h2>
               
@@ -553,30 +505,30 @@ export default function Home() {
                 <div className="flex items-center gap-1.5 flex-1 overflow-x-auto">
                   <button
                     onClick={() => setFilterStatus('ALL')}
-                    className={`px-3 py-1 text-xs font-medium rounded-lg whitespace-nowrap transition-colors ${
+                    className={`px-3 py-1 text-xs rounded-lg whitespace-nowrap transition-colors ${
                       filterStatus === 'ALL'
-                        ? 'bg-coolgray-900 text-white'
-                        : 'bg-coolgray-25 text-coolgray-600 hover:bg-coolgray-50'
+                        ? 'bg-coolgray-900 text-white font-medium'
+                        : 'bg-coolgray-25 text-coolgray-600 hover:bg-coolgray-50 font-normal'
                     }`}
                   >
                     전체
                   </button>
                   <button
                     onClick={() => setFilterStatus('ACTIVE')}
-                    className={`px-3 py-1 text-xs font-medium rounded-lg whitespace-nowrap transition-colors ${
+                    className={`px-3 py-1 text-xs rounded-lg whitespace-nowrap transition-colors ${
                       filterStatus === 'ACTIVE'
-                        ? 'bg-coolgray-900 text-white'
-                        : 'bg-coolgray-25 text-coolgray-600 hover:bg-coolgray-50'
+                        ? 'bg-coolgray-900 text-white font-medium'
+                        : 'bg-coolgray-25 text-coolgray-600 hover:bg-coolgray-50 font-normal'
                     }`}
                   >
                     진행 중
                   </button>
                   <button
                     onClick={() => setFilterStatus('ENDED')}
-                    className={`px-3 py-1 text-xs font-medium rounded-lg whitespace-nowrap transition-colors ${
+                    className={`px-3 py-1 text-xs rounded-lg whitespace-nowrap transition-colors ${
                       filterStatus === 'ENDED'
-                        ? 'bg-coolgray-900 text-white'
-                        : 'bg-coolgray-25 text-coolgray-600 hover:bg-coolgray-50'
+                        ? 'bg-coolgray-900 text-white font-medium'
+                        : 'bg-coolgray-25 text-coolgray-600 hover:bg-coolgray-50 font-normal'
                     }`}
                   >
                     종료
@@ -586,7 +538,7 @@ export default function Home() {
                 {/* 정렬 드롭다운 */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-coolgray-600 hover:text-coolgray-900 transition-colors whitespace-nowrap">
+                    <button className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-coolgray-500 hover:text-coolgray-900 transition-colors whitespace-nowrap">
                       {sortBy === 'TOTAL_VALUE' && '평가금액 순'}
                       {sortBy === 'MONTHLY_PAYMENT' && '월 투자액 순'}
                       {sortBy === 'NAME' && '이름 순'}
@@ -651,58 +603,16 @@ export default function Home() {
             </div>
           )}
 
-        {/* 예상 수익 차트 카드 */}
+        {/* 통계 보기 링크 - 예상 자산·수익 차트는 /stats에서 */}
         {records.length > 0 && (
-          <div className="bg-white rounded-3xl p-6">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 text-coolgray-700 text-lg font-medium">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      className="focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-coolgray-200 border-coolgray-200 hover:border-coolgray-300"
-                    >
-                      {selectedYear}년 뒤
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-[120px]">
-                    <DropdownMenuItem onClick={() => setSelectedYear(1)}>1년 뒤</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSelectedYear(3)}>3년 뒤</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSelectedYear(5)}>5년 뒤</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSelectedYear(10)}>10년 뒤</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSelectedYear(30)}>30년 뒤</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <span className="text-coolgray-700 font-semibold">예상 수익 차트</span>
-              </div>
-
-              <AssetGrowthChart
-                investments={records}
-                selectedYear={selectedYear}
-              />
-            </div>
-          </div>
+          <Link
+            href="/stats"
+            className="block text-center py-3 text-sm text-coolgray-500 hover:text-coolgray-700 transition-colors"
+          >
+            예상 자산 · 수익 차트 보기 →
+          </Link>
         )}
       </div>
-
-      {/* 현금 보관 항목 시트 */}
-      {showCashHoldSheet && (
-        <CashHoldItemsSheet
-          items={records}
-          selectedYear={selectedYear}
-          onClose={() => setShowCashHoldSheet(false)}
-          calculateFutureValue={calculateSimulatedValue}
-        />
-      )}
-
-      {/* 월 납입 내역 시트 */}
-      {showContributionSheet && (
-        <MonthlyContributionSheet
-          items={records}
-          totalAmount={totalMonthlyPayment}
-          onClose={() => setShowContributionSheet(false)}
-        />
-      )}
 
       {/* 투자 상세 페이지 */}
       {detailItem && (
