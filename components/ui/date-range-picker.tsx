@@ -3,7 +3,7 @@
 import { type DateRange } from 'react-day-picker'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { ChevronDownIcon } from 'lucide-react'
+import { CaretDown } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -38,12 +38,12 @@ export function DateRangePicker({
           variant="outline"
           disabled={disabled}
           className={cn(
-            'w-full justify-between font-normal focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-coolgray-200 border-coolgray-200 hover:border-coolgray-300',
+            'w-full justify-between font-normal focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-border border-border hover:border-surface-strong-hover',
             buttonClassName
           )}
         >
           {label}
-          <ChevronDownIcon className="ml-2 h-4 w-4 opacity-50" />
+          <CaretDown className="ml-2 h-4 w-4 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto overflow-hidden p-0" align="start">

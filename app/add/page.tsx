@@ -2,8 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { IconArrowLeft, IconLoader2, IconInfoCircle, IconX } from '@tabler/icons-react'
-import { CalendarDays, ChevronDownIcon } from 'lucide-react'
+import {
+  ArrowLeft,
+  CircleNotch,
+  Info,
+  X,
+  CalendarBlank,
+  CaretDown,
+} from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -394,31 +400,31 @@ export default function AddInvestmentPage() {
   }
 
   return (
-    <main className="min-h-screen bg-coolgray-25">
+    <main className="min-h-screen bg-surface">
       {/* 뒤로가기 버튼 */}
       <header className="h-[52px] flex items-center px-4">
         <button
           onClick={() => router.back()}
-          className="p-2 text-coolgray-700 hover:text-coolgray-900 transition-colors"
+          className="p-2 text-foreground-soft hover:text-foreground transition-colors"
           aria-label="뒤로가기"
         >
-          <IconArrowLeft className="w-6 h-6" />
+          <ArrowLeft className="w-6 h-6" />
         </button>
       </header>
 
       <div className="max-w-md mx-auto px-4 py-6">
         {/* 상단 헤더 텍스트 */}
         <div className="mb-8">
-          <h1 className="text-xl font-bold text-coolgray-900 mb-3">
+          <h1 className="text-xl font-bold text-foreground mb-3">
             람쥐씨, 어떤 꿈을 꾸고 계신가요?
           </h1>
-          <p className="text-sm text-coolgray-400 whitespace-pre-line">
+          <p className="text-sm text-foreground-subtle whitespace-pre-line">
             매달 꾸준히 모았을 때,{'\n'}10년 뒤 얼마가 될지 바로 보여드릴게요.
           </p>
         </div>
 
         {/* 마켓 선택 탭 */}
-        <div className="grid grid-cols-2 gap-1 bg-gray-100 p-1 rounded-lg mb-6">
+        <div className="grid grid-cols-2 gap-1 bg-secondary p-1 rounded-lg mb-6">
           <button
             type="button"
             onClick={() => {
@@ -437,8 +443,8 @@ export default function AddInvestmentPage() {
             }}
             className={`py-2 px-4 text-sm font-medium rounded-md transition-colors ${
               market === 'KR'
-                ? 'bg-white text-coolgray-900 shadow-sm'
-                : 'text-coolgray-500 hover:text-coolgray-700'
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground-soft'
             }`}
           >
             🇰🇷 국내 주식
@@ -461,8 +467,8 @@ export default function AddInvestmentPage() {
             }}
             className={`py-2 px-4 text-sm font-medium rounded-md transition-colors ${
               market === 'US'
-                ? 'bg-white text-coolgray-900 shadow-sm'
-                : 'text-coolgray-500 hover:text-coolgray-700'
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground-soft'
             }`}
           >
             🇺🇸 미국 주식
@@ -486,20 +492,20 @@ export default function AddInvestmentPage() {
                 setIsRateEditing(false) // 수정 모드 종료
               }}
               placeholder={market === 'KR' ? '삼성전자, TIGER...' : 'S&P 500, AAPL...'}
-              className="w-full bg-white rounded-2xl py-3.5 pl-4 pr-12 text-coolgray-900 placeholder-coolgray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full bg-card rounded-2xl py-3.5 pl-4 pr-12 text-foreground placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-ring"
               autoComplete="off"
             />
             
             {/* 로딩 스피너 */}
             {isSearching && (
               <div className="absolute right-5 top-1/2 -translate-y-1/2">
-                <IconLoader2 className="w-5 h-5 animate-spin text-brand-600" />
+                <CircleNotch className="w-5 h-5 animate-spin text-muted-foreground" />
               </div>
             )}
 
             {/* 드롭다운 검색 결과 */}
             {showDropdown && searchResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-coolgray-100 overflow-hidden z-10 max-h-80 overflow-y-auto">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-card rounded-2xl shadow-lg border border-border-subtle overflow-hidden z-10 max-h-80 overflow-y-auto">
                 {searchResults.map((stock) => (
                   <button
                     key={stock.symbol}
@@ -508,12 +514,12 @@ export default function AddInvestmentPage() {
                       e.stopPropagation()
                       handleSelectStock(stock)
                     }}
-                    className="w-full px-5 py-4 text-left hover:bg-coolgray-50 transition-colors border-b border-coolgray-100 last:border-b-0"
+                    className="w-full px-5 py-4 text-left hover:bg-surface-hover transition-colors border-b border-border-subtle last:border-b-0"
                   >
-                    <div className="font-medium text-coolgray-900">
+                    <div className="font-medium text-foreground">
                       {stock.name}
                     </div>
-                    <div className="text-sm text-coolgray-500 mt-1">
+                    <div className="text-sm text-muted-foreground mt-1">
                       {stock.symbol}
                       {stock.group && ` · ${stock.group}`}
                     </div>
@@ -524,9 +530,9 @@ export default function AddInvestmentPage() {
 
             {/* 검색 결과 없음 - 직접 입력 안내 */}
             {showDropdown && searchResults.length === 0 && !isSearching && stockName.trim().length >= 2 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-coolgray-100 overflow-hidden z-10">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-card rounded-2xl shadow-lg border border-border-subtle overflow-hidden z-10">
                 <div className="px-5 py-4 text-center">
-                  <p className="text-sm text-coolgray-500 mb-3">
+                  <p className="text-sm text-muted-foreground mb-3">
                     찾으시는 종목이 없나요?
                   </p>
                   <button
@@ -536,7 +542,7 @@ export default function AddInvestmentPage() {
                       setManualStockName(stockName)
                       setShowDropdown(false)
                     }}
-                    className="w-full bg-brand-600 text-white font-medium py-2 px-4 rounded-xl hover:bg-brand-700 transition-colors"
+                    className="w-full bg-primary text-primary-foreground font-medium py-2 px-4 rounded-xl hover:bg-primary/90 transition-colors"
                   >
                     직접 입력하기
                   </button>
@@ -551,8 +557,8 @@ export default function AddInvestmentPage() {
                 {isRateLoading ? (
                   // 로딩 중 - 스피너 + 안내 문구
                   <div className="flex items-center gap-2">
-                    <IconLoader2 className="w-4 h-4 animate-spin text-brand-600" />
-                    <span className="text-sm text-coolgray-500">수익률을 분석하고 있어요...</span>
+                    <CircleNotch className="w-4 h-4 animate-spin text-brand-600" />
+                    <span className="text-sm text-muted-foreground">수익률을 분석하고 있어요...</span>
                   </div>
                 ) : rateFetchFailed ? (
                   // API 실패 - 경고 문구 + 수정 버튼
@@ -574,8 +580,8 @@ export default function AddInvestmentPage() {
                   </div>
                 ) : isRateEditing ? (
                   // 수정 모드
-                  <div className="flex items-center gap-2 bg-coolgray-50 rounded-xl p-3">
-                    <span className="text-sm text-coolgray-600">연 수익률</span>
+                  <div className="flex items-center gap-2 bg-surface-hover rounded-xl p-3">
+                    <span className="text-sm text-foreground-muted">연 수익률</span>
                     <input
                       type="text"
                       value={editingRate}
@@ -584,11 +590,11 @@ export default function AddInvestmentPage() {
                         const parts = value.split('.')
                         if (parts.length <= 2) setEditingRate(value)
                       }}
-                      className="w-16 text-center bg-white border border-coolgray-200 rounded-lg px-2 py-1 text-coolgray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      className="w-16 text-center bg-card border border-border rounded-lg px-2 py-1 text-foreground font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
                       placeholder="10"
                       autoFocus
                     />
-                    <span className="text-sm text-coolgray-600">%</span>
+                    <span className="text-sm text-foreground-muted">%</span>
                     <button
                       type="button"
                       onClick={() => {
@@ -599,7 +605,7 @@ export default function AddInvestmentPage() {
                         }
                         setIsRateEditing(false)
                       }}
-                      className="px-3 py-1 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
+                      className="px-3 py-1 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
                     >
                       확인
                     </button>
@@ -609,7 +615,7 @@ export default function AddInvestmentPage() {
                         setIsRateEditing(false)
                         setEditingRate('')
                       }}
-                      className="px-3 py-1 bg-coolgray-200 text-coolgray-700 text-sm font-medium rounded-lg hover:bg-coolgray-300 transition-colors"
+                      className="px-3 py-1 bg-surface-strong text-foreground-soft text-sm font-medium rounded-lg hover:bg-surface-strong-hover transition-colors"
                     >
                       취소
                     </button>
@@ -624,7 +630,7 @@ export default function AddInvestmentPage() {
                         <span className="text-purple-600">
                           수익률 {annualRate}%가 적용됩니다
                         </span>
-                        <span className="text-xs text-coolgray-400 ml-1">
+                        <span className="text-xs text-foreground-subtle ml-1">
                           (시스템: {originalSystemRate}%)
                         </span>
                       </>
@@ -640,10 +646,10 @@ export default function AddInvestmentPage() {
                     <button
                       type="button"
                       onClick={() => setIsRateHelpModalOpen(true)}
-                      className="p-1 flex items-center justify-center bg-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      className="p-1 flex items-center justify-center bg-transparent text-foreground-subtle hover:text-foreground-muted hover:bg-secondary rounded transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500"
                       aria-label="수익률 계산 방식 안내"
                     >
-                      <IconInfoCircle className="w-4 h-4" />
+                      <Info className="w-4 h-4" />
                     </button>
                     <button
                       type="button"
@@ -651,7 +657,7 @@ export default function AddInvestmentPage() {
                         setEditingRate(annualRate.toString())
                         setIsRateEditing(true)
                       }}
-                      className="px-2 py-0.5 bg-coolgray-100 text-coolgray-600 text-xs font-medium rounded-full hover:bg-coolgray-200 transition-colors ml-1"
+                      className="px-2 py-0.5 bg-secondary text-foreground-muted text-xs font-medium rounded-full hover:bg-surface-strong transition-colors ml-1"
                     >
                       수정
                     </button>
@@ -665,8 +671,8 @@ export default function AddInvestmentPage() {
               <div className="mt-2">
                 {isRateEditing ? (
                   // 수정 모드
-                  <div className="flex items-center gap-2 bg-coolgray-50 rounded-xl p-3">
-                    <span className="text-sm text-coolgray-600">연 수익률</span>
+                  <div className="flex items-center gap-2 bg-surface-hover rounded-xl p-3">
+                    <span className="text-sm text-foreground-muted">연 수익률</span>
                     <input
                       type="text"
                       value={editingRate}
@@ -675,11 +681,11 @@ export default function AddInvestmentPage() {
                         const parts = value.split('.')
                         if (parts.length <= 2) setEditingRate(value)
                       }}
-                      className="w-16 text-center bg-white border border-coolgray-200 rounded-lg px-2 py-1 text-coolgray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      className="w-16 text-center bg-card border border-border rounded-lg px-2 py-1 text-foreground font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
                       placeholder="10"
                       autoFocus
                     />
-                    <span className="text-sm text-coolgray-600">%</span>
+                    <span className="text-sm text-foreground-muted">%</span>
                     <button
                       type="button"
                       onClick={() => {
@@ -689,7 +695,7 @@ export default function AddInvestmentPage() {
                         }
                         setIsRateEditing(false)
                       }}
-                      className="px-3 py-1 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
+                      className="px-3 py-1 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
                     >
                       확인
                     </button>
@@ -699,7 +705,7 @@ export default function AddInvestmentPage() {
                         setIsRateEditing(false)
                         setEditingRate('')
                       }}
-                      className="px-3 py-1 bg-coolgray-200 text-coolgray-700 text-sm font-medium rounded-lg hover:bg-coolgray-300 transition-colors"
+                      className="px-3 py-1 bg-surface-strong text-foreground-soft text-sm font-medium rounded-lg hover:bg-surface-strong-hover transition-colors"
                     >
                       취소
                     </button>
@@ -715,7 +721,7 @@ export default function AddInvestmentPage() {
                         setEditingRate(annualRate.toString())
                         setIsRateEditing(true)
                       }}
-                      className="px-2 py-0.5 bg-coolgray-100 text-coolgray-600 text-xs font-medium rounded-full hover:bg-coolgray-200 transition-colors ml-1"
+                      className="px-2 py-0.5 bg-secondary text-foreground-muted text-xs font-medium rounded-full hover:bg-surface-strong transition-colors ml-1"
                     >
                       수정
                     </button>
@@ -733,9 +739,9 @@ export default function AddInvestmentPage() {
                 value={monthlyAmount}
                 onChange={handleAmountChange}
                 placeholder="월 100 (만원 단위)"
-                className="w-full bg-white rounded-2xl py-3.5 pl-4 pr-16 text-coolgray-900 placeholder-coolgray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full bg-card rounded-2xl py-3.5 pl-4 pr-16 text-foreground placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-ring"
               />
-              <span className="absolute right-5 top-1/2 -translate-y-1/2 text-coolgray-500 font-medium">
+              <span className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
                 만원
               </span>
             </div>
@@ -744,28 +750,28 @@ export default function AddInvestmentPage() {
               <button
                 type="button"
                 onClick={() => adjustAmount(10)}
-                className="rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold text-sm px-4 py-2 transition-colors"
+                className="rounded-full bg-surface-strong hover:bg-surface-strong-hover text-foreground-soft font-semibold text-sm px-4 py-2 transition-colors"
               >
                 +10
               </button>
               <button
                 type="button"
                 onClick={() => adjustAmount(-10)}
-                className="rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold text-sm px-4 py-2 transition-colors"
+                className="rounded-full bg-surface-strong hover:bg-surface-strong-hover text-foreground-soft font-semibold text-sm px-4 py-2 transition-colors"
               >
                 -10
               </button>
               <button
                 type="button"
                 onClick={() => adjustAmount(1)}
-                className="rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold text-sm px-4 py-2 transition-colors"
+                className="rounded-full bg-surface-strong hover:bg-surface-strong-hover text-foreground-soft font-semibold text-sm px-4 py-2 transition-colors"
               >
                 +1
               </button>
               <button
                 type="button"
                 onClick={() => adjustAmount(-1)}
-                className="rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold text-sm px-4 py-2 transition-colors"
+                className="rounded-full bg-surface-strong hover:bg-surface-strong-hover text-foreground-soft font-semibold text-sm px-4 py-2 transition-colors"
               >
                 -1
               </button>
@@ -779,35 +785,35 @@ export default function AddInvestmentPage() {
               value={period}
               onChange={(e) => handleNumericInput(e, setPeriod)}
               placeholder="3년간"
-              className="w-full bg-white rounded-2xl py-3.5 px-4 text-coolgray-900 placeholder-coolgray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full bg-card rounded-2xl py-3.5 px-4 text-foreground placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-ring"
             />
             {/* 빠른 조절 버튼 */}
             <div className="flex flex-wrap gap-2 justify-start mt-2">
               <button
                 type="button"
                 onClick={() => adjustPeriod(5)}
-                className="rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold text-sm px-4 py-2 transition-colors"
+                className="rounded-full bg-surface-strong hover:bg-surface-strong-hover text-foreground-soft font-semibold text-sm px-4 py-2 transition-colors"
               >
                 +5
               </button>
               <button
                 type="button"
                 onClick={() => adjustPeriod(-5)}
-                className="rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold text-sm px-4 py-2 transition-colors"
+                className="rounded-full bg-surface-strong hover:bg-surface-strong-hover text-foreground-soft font-semibold text-sm px-4 py-2 transition-colors"
               >
                 -5
               </button>
               <button
                 type="button"
                 onClick={() => adjustPeriod(1)}
-                className="rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold text-sm px-4 py-2 transition-colors"
+                className="rounded-full bg-surface-strong hover:bg-surface-strong-hover text-foreground-soft font-semibold text-sm px-4 py-2 transition-colors"
               >
                 +1
               </button>
               <button
                 type="button"
                 onClick={() => adjustPeriod(-1)}
-                className="rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold text-sm px-4 py-2 transition-colors"
+                className="rounded-full bg-surface-strong hover:bg-surface-strong-hover text-foreground-soft font-semibold text-sm px-4 py-2 transition-colors"
               >
                 -1
               </button>
@@ -816,17 +822,17 @@ export default function AddInvestmentPage() {
 
           {/* 투자 시작일 입력 */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-coolgray-700 px-1">
+            <label className="block text-sm font-medium text-foreground-soft px-1">
               투자 시작일
             </label>
             <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
               <PopoverTrigger asChild>
                 <Button 
                   variant="outline" 
-                className="w-full justify-between font-normal bg-white rounded-2xl h-12 px-4 text-coolgray-900 border-coolgray-100 hover:bg-coolgray-25"
+                  className="w-full justify-between font-normal bg-card rounded-2xl h-12 px-4 text-foreground border-border-subtle hover:bg-surface"
                 >
                   {startDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
-                  <ChevronDownIcon className="w-5 h-5 text-coolgray-400" />
+                  <CaretDown className="w-5 h-5 text-foreground-subtle" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent
@@ -846,20 +852,20 @@ export default function AddInvestmentPage() {
                 />
               </PopoverContent>
             </Popover>
-            <p className="text-xs text-coolgray-400 px-1">
+            <p className="text-xs text-foreground-subtle px-1">
               투자를 시작한 날짜를 선택하세요. 기본값은 오늘입니다.
             </p>
           </div>
 
 
           {/* 매월 투자일 선택 - 요약 + 바텀 시트 */}
-          <div className="rounded-2xl p-4 border border-coolgray-50 bg-white space-y-2.5">
+          <div className="rounded-2xl p-4 border border-border-subtle-lighter bg-card space-y-2.5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-medium text-coolgray-900">
+                <p className="text-sm font-medium text-foreground">
                   매월 투자일
                 </p>
-                <p className="text-xs text-coolgray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   선택하면 다가오는 투자·캘린더에 일정이 표시돼요.
                 </p>
               </div>
@@ -870,7 +876,7 @@ export default function AddInvestmentPage() {
                 {[...investmentDays].sort((a, b) => a - b).map((day) => (
                   <span
                     key={day}
-                    className="inline-flex items-center bg-brand-50 text-brand-700 px-2.5 py-0.5 rounded-full text-xs font-medium"
+                    className="inline-flex items-center bg-[var(--brand-accent-bg)] text-[var(--brand-accent-text)] px-2.5 py-0.5 rounded-full text-xs font-medium"
                   >
                     {day}일
                   </span>
@@ -882,38 +888,38 @@ export default function AddInvestmentPage() {
               type="button"
               variant="outline"
               onClick={() => setIsDaysPickerOpen(true)}
-              className="w-full justify-between bg-white rounded-xl h-11 px-4 text-sm text-coolgray-800 border-coolgray-100 hover:bg-coolgray-25"
+              className="w-full justify-between bg-card rounded-xl h-11 px-4 text-sm text-foreground border-border-subtle hover:bg-surface"
             >
               <span>
                 {investmentDays.length > 0
                   ? `${[...investmentDays].sort((a, b) => a - b).join(', ')}일 선택됨`
                   : '날짜 선택하기'}
               </span>
-              <CalendarDays className="w-4 h-4 text-coolgray-400" />
+              <CalendarBlank className="w-4 h-4 text-foreground-subtle" />
             </Button>
           </div>
         </form>
 
         {/* 미리보기 카드 */}
         {stockName.trim() && monthlyAmount && period && (
-          <div className="mb-4 bg-brand-50 border-2 border-dashed border-brand-200 rounded-2xl p-5 animate-in fade-in-0 slide-in-from-bottom-2">
+          <div className="mb-4 bg-[var(--brand-accent-bg)] border-2 border-dashed border-[var(--brand-accent-border)] rounded-2xl p-5 animate-in fade-in-0 slide-in-from-bottom-2">
             <div className="flex items-center gap-2 mb-4">
               {isRateLoading ? (
-                <IconLoader2 className="w-5 h-5 animate-spin text-brand-600" />
+                <CircleNotch className="w-5 h-5 animate-spin text-muted-foreground" />
               ) : (
                 <span className="text-lg">🔍</span>
               )}
-              <h3 className="text-sm font-bold text-coolgray-900">
+              <h3 className="text-sm font-bold text-foreground">
                 {isRateLoading ? '분석 중...' : '예상 결과'}
               </h3>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-coolgray-600">만기 금액</span>
+                <span className="text-sm text-foreground-muted">만기 금액</span>
                 {isRateLoading ? (
-                  <IconLoader2 className="w-5 h-5 animate-spin text-brand-600" />
+                  <CircleNotch className="w-5 h-5 animate-spin text-muted-foreground" />
                 ) : (
-                  <span className="text-lg font-bold text-coolgray-900">
+                  <span className="text-lg font-bold text-foreground">
                     {formatCurrency(
                       calculateFinalAmount(
                         parseInt(monthlyAmount.replace(/,/g, '')) * 10000,
@@ -925,11 +931,11 @@ export default function AddInvestmentPage() {
                 )}
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-coolgray-600">예상 수익</span>
+                <span className="text-sm text-foreground-muted">예상 수익</span>
                 {isRateLoading ? (
-                  <IconLoader2 className="w-5 h-5 animate-spin text-brand-600" />
+                  <CircleNotch className="w-5 h-5 animate-spin text-muted-foreground" />
                 ) : (
-                  <span className="text-lg font-bold text-green-600">
+                  <span className="text-lg font-bold text-brand-600">
                     + {formatCurrency(
                       calculateFinalAmount(
                         parseInt(monthlyAmount.replace(/,/g, '')) * 10000,
@@ -941,10 +947,10 @@ export default function AddInvestmentPage() {
                 )}
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-coolgray-600">
+                <span className="text-sm text-foreground-muted">
                   총 투자금 ({parseInt(monthlyAmount.replace(/,/g, ''))}만원 × {parseInt(period) * 12}개월)
                 </span>
-                <span className="text-base font-semibold text-coolgray-700">
+                <span className="text-base font-semibold text-foreground-soft">
                   {formatCurrency(parseInt(monthlyAmount.replace(/,/g, '')) * 10000 * parseInt(period) * 12)}
                 </span>
               </div>
@@ -956,11 +962,11 @@ export default function AddInvestmentPage() {
         <button
           onClick={handleSubmit}
           disabled={isSubmitting}
-          className="w-full bg-coolgray-800 text-white font-medium rounded-xl py-4 hover:bg-coolgray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full bg-surface-dark text-white font-medium rounded-xl py-4 hover:bg-surface-dark-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {isSubmitting ? (
             <>
-              <IconLoader2 className="w-5 h-5 animate-spin" />
+              <CircleNotch className="w-5 h-5 animate-spin" />
               <span>저장 중...</span>
             </>
           ) : (
@@ -995,7 +1001,7 @@ export default function AddInvestmentPage() {
           />
           
           {/* 모달 컨텐츠 */}
-          <div className="relative z-50 w-full max-w-md mx-4 bg-white rounded-lg shadow-lg border p-6 animate-in fade-in-0 zoom-in-95">
+          <div className="relative z-50 w-full max-w-md mx-4 bg-card rounded-lg shadow-lg border p-6 animate-in fade-in-0 zoom-in-95">
             {/* 닫기 버튼 */}
             <button
               onClick={() => {
@@ -1003,15 +1009,15 @@ export default function AddInvestmentPage() {
                 setManualStockName('')
                 setManualRate('')
               }}
-              className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center bg-transparent hover:bg-gray-100 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center bg-transparent hover:bg-secondary rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500"
               aria-label="닫기"
             >
-              <IconX className="w-5 h-5 text-gray-600" />
+              <X className="w-5 h-5 text-foreground-muted" />
             </button>
 
             {/* 헤더 */}
             <div className="mb-4">
-              <h2 className="text-lg font-semibold text-coolgray-900">
+              <h2 className="text-lg font-semibold text-foreground">
                 투자할 종목 직접 입력
               </h2>
             </div>
@@ -1019,7 +1025,7 @@ export default function AddInvestmentPage() {
             <div className="space-y-4 py-4">
               {/* 종목명 입력 */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-coolgray-900">
+                <label className="text-sm font-medium text-foreground">
                   종목 이름
                 </label>
                 <input
@@ -1027,23 +1033,23 @@ export default function AddInvestmentPage() {
                   value={manualStockName}
                   onChange={(e) => setManualStockName(e.target.value)}
                   placeholder="예: 나만의 포트폴리오"
-                  className="w-full bg-white border border-coolgray-200 rounded-xl p-3 text-coolgray-900 placeholder-coolgray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full bg-card border border-border rounded-xl p-3 text-foreground placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
 
               {/* 예상 수익률 입력 */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium text-coolgray-900">
+                  <label className="text-sm font-medium text-foreground">
                     예상 연평균 수익률 (%)
                   </label>
                   <button
                     type="button"
                     onClick={() => setIsRateHelpModalOpen(true)}
-                    className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 rounded"
+                    className="text-foreground-subtle hover:text-foreground-muted transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 rounded"
                     aria-label="수익률 계산 방식 안내"
                   >
-                    <IconInfoCircle className="w-4 h-4" />
+                    <Info className="w-4 h-4" />
                   </button>
                 </div>
                 <input
@@ -1054,9 +1060,9 @@ export default function AddInvestmentPage() {
                   step="0.1"
                   min="0"
                   max="100"
-                  className="w-full bg-white border border-coolgray-200 rounded-xl p-3 text-coolgray-900 placeholder-coolgray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full bg-card border border-border rounded-xl p-3 text-foreground placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-ring"
                 />
-                <p className="text-xs text-coolgray-500 leading-relaxed">
+                <p className="text-xs text-muted-foreground leading-relaxed">
                   💡 잘 모르겠다면 S&P500 평균인 <strong>10%</strong>를 입력해보세요. 
                   보수적으로 잡고 싶다면 예금 금리 <strong>3%</strong>를 추천해요.
                 </p>
@@ -1071,13 +1077,13 @@ export default function AddInvestmentPage() {
                   setManualStockName('')
                   setManualRate('')
                 }}
-                className="flex-1 bg-coolgray-100 text-coolgray-700 font-medium py-3 rounded-xl hover:bg-coolgray-200 transition-colors"
+                className="flex-1 bg-secondary text-foreground-soft font-medium py-3 rounded-xl hover:bg-surface-strong transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={handleManualConfirm}
-                className="flex-1 bg-brand-600 text-white font-medium py-3 rounded-xl hover:bg-brand-700 transition-colors"
+                className="flex-1 bg-primary text-primary-foreground font-medium py-3 rounded-xl hover:bg-primary/90 transition-colors"
               >
                 확인
               </button>
@@ -1100,24 +1106,24 @@ export default function AddInvestmentPage() {
             {/* 닫기 버튼 */}
             <button
               onClick={() => setIsRateHelpModalOpen(false)}
-              className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center bg-transparent hover:bg-gray-100 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center bg-transparent hover:bg-secondary rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500"
               aria-label="닫기"
             >
-              <IconX className="w-5 h-5 text-gray-600" />
+              <X className="w-5 h-5 text-foreground-muted" />
             </button>
 
             {/* 헤더 */}
             <div className="mb-6">
-              <h2 className="text-lg font-bold text-coolgray-900">
+              <h2 className="text-lg font-bold text-foreground">
                 수익률은 어떻게 계산되나요?
               </h2>
             </div>
             
             {/* 본문 내용 */}
-            <div className="space-y-4 text-gray-700">
+            <div className="space-y-4 text-foreground-soft">
               {/* 1. 데이터 출처 */}
               <div>
-                <h3 className="font-semibold text-coolgray-900 mb-2">
+                <h3 className="font-semibold text-foreground mb-2">
                   1. 데이터 출처
                 </h3>
                 <p>
@@ -1127,7 +1133,7 @@ export default function AddInvestmentPage() {
 
               {/* 2. 계산 방식 */}
               <div>
-                <h3 className="font-semibold text-coolgray-900 mb-2">
+                <h3 className="font-semibold text-foreground mb-2">
                   2. 계산 방식
                 </h3>
                 <p>
@@ -1136,8 +1142,8 @@ export default function AddInvestmentPage() {
               </div>
 
               {/* 3. 현실적인 안전장치 */}
-              <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
-                <h3 className="font-semibold text-coolgray-900 mb-2 flex items-center gap-2">
+              <div className="bg-surface-hover p-4 rounded-md border border-border">
+                <h3 className="font-semibold text-foreground mb-2 flex items-center gap-2">
                   <span>⚠️</span>
                   <span>현실적인 안전장치 (중요!)</span>
                 </h3>

@@ -149,9 +149,9 @@ export default function UpcomingInvestments({ records }: UpcomingInvestmentsProp
   if (records.length === 0) return null
 
   return (
-    <div className="bg-white rounded-3xl p-6">
+    <div className="bg-card rounded-3xl p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-coolgray-900 flex items-center gap-1">
+        <h2 className="text-lg font-bold text-foreground flex items-center gap-1">
           <Image
             src="/icons/3d/bell-yellow.png"
             alt="다가오는 투자 알림 아이콘"
@@ -166,7 +166,7 @@ export default function UpcomingInvestments({ records }: UpcomingInvestmentsProp
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-coolgray-200 border-coolgray-200 hover:border-coolgray-300"
+                className="focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-border border-border hover:border-surface-strong-hover"
               >
                 {rangeLabel}
               </Button>
@@ -210,7 +210,7 @@ export default function UpcomingInvestments({ records }: UpcomingInvestmentsProp
       )}
 
       {visibleItems.length === 0 ? (
-        <p className="text-sm text-coolgray-500 py-4 text-center">
+        <p className="text-sm text-muted-foreground py-4 text-center">
           {rangeLabel} 이내 예정된 투자가 없어요
         </p>
       ) : (
@@ -218,21 +218,21 @@ export default function UpcomingInvestments({ records }: UpcomingInvestmentsProp
         {visibleItems.map((item) => (
           <div
             key={`${item.investment.id}-${item.paymentDate.getTime()}-${item.dayOfMonth}`}
-            className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-coolgray-25 border border-coolgray-100"
+            className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-surface border border-border-subtle"
           >
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-coolgray-900 truncate">
+              <p className="text-sm font-medium text-foreground truncate">
                 {formatPaymentDateShort(item.paymentDate)} · {item.investment.title}
               </p>
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
-              <span className="text-sm font-bold text-coolgray-900">
+              <span className="text-sm font-bold text-foreground">
                 {formatCurrency(item.investment.monthly_amount)}
               </span>
               <button
                 type="button"
                 onClick={() => toggleComplete(item.investment.id, item.paymentDate, item.dayOfMonth)}
-                className="px-3 py-1.5 rounded-lg border border-coolgray-200 text-coolgray-600 text-xs font-medium hover:bg-coolgray-50 hover:border-coolgray-300 transition-colors"
+                className="px-3 py-1.5 rounded-lg border border-border text-foreground-muted text-xs font-medium hover:bg-surface-hover hover:border-surface-strong-hover transition-colors"
                 aria-label="납입 완료 체크"
               >
                 완료하기
@@ -246,7 +246,7 @@ export default function UpcomingInvestments({ records }: UpcomingInvestmentsProp
       {/* 되돌리기 토스트 */}
       {pendingUndo && (
         <div
-          className="fixed bottom-24 left-4 right-4 z-50 flex items-center justify-between gap-3 rounded-xl bg-coolgray-900 text-white px-4 py-3 shadow-lg"
+          className="fixed bottom-24 left-4 right-4 z-50 flex items-center justify-between gap-3 rounded-xl bg-surface-dark text-white px-4 py-3 shadow-lg"
           role="status"
         >
           <span className="text-sm font-medium">완료됨</span>

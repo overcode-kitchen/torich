@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-import { ChevronDownIcon } from 'lucide-react'
+import { CaretDown } from '@phosphor-icons/react'
 
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -22,7 +22,7 @@ const DatePickerDemo = () => {
         <PopoverTrigger asChild>
           <Button variant='outline' id='date' className='w-full justify-between font-normal'>
             {date ? date.toLocaleDateString() : 'Pick a date'}
-            <ChevronDownIcon />
+            <CaretDown />
           </Button>
         </PopoverTrigger>
         <PopoverContent className='w-auto overflow-hidden p-0' align='start'>

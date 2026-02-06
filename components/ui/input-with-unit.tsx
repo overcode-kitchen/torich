@@ -55,7 +55,7 @@ const InputWithUnit = React.forwardRef<HTMLInputElement, InputWithUnitProps>(
     return (
       <div
         className={cn(
-          'flex items-center w-full rounded-lg border border-coolgray-200 bg-coolgray-25 overflow-hidden focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-transparent',
+          'flex items-center w-full rounded-lg border border-border bg-surface overflow-hidden focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-transparent',
           wrapperClassName
         )}
       >
@@ -63,7 +63,7 @@ const InputWithUnit = React.forwardRef<HTMLInputElement, InputWithUnitProps>(
           ref={ref}
           type="text"
           className={cn(
-            'flex-1 min-w-0 bg-transparent border-0 text-right text-coolgray-900 font-semibold placeholder:text-coolgray-400 focus:outline-none',
+            'flex-1 min-w-0 bg-transparent border-0 text-right text-foreground font-semibold placeholder:text-foreground-subtle focus:outline-none',
             s.input,
             inputClassName
           )}
@@ -71,7 +71,7 @@ const InputWithUnit = React.forwardRef<HTMLInputElement, InputWithUnitProps>(
         />
         <span
           className={cn(
-            'flex-shrink-0 text-coolgray-500 font-medium',
+            'flex-shrink-0 text-muted-foreground font-medium',
             s.unit,
             unitClassName
           )}

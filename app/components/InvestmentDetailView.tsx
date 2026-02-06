@@ -2,8 +2,18 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { formatCurrency } from '@/lib/utils'
-import { IconArrowLeft, IconPencil, IconTrash, IconCheck, IconX, IconInfoCircle, IconDotsVertical, IconBell, IconBellOff } from '@tabler/icons-react'
-import { CalendarDays } from 'lucide-react'
+import {
+  ArrowLeft,
+  Pencil,
+  Trash,
+  Check,
+  X,
+  Info,
+  DotsThreeVertical,
+  Bell,
+  BellSlash,
+  CalendarBlank,
+} from '@phosphor-icons/react'
 import { Investment, getStartDate, formatInvestmentDays } from '@/app/types/investment'
 import InvestmentDaysPickerSheet from '@/app/components/InvestmentDaysPickerSheet'
 import InvestmentEditSheet, { type RateSuggestion } from '@/app/components/InvestmentEditSheet'
@@ -263,18 +273,18 @@ export default function InvestmentDetailView({
   }
 
   return (
-    <div ref={scrollContainerRef} className="fixed inset-0 z-50 bg-white overflow-y-auto">
+    <div ref={scrollContainerRef} className="fixed inset-0 z-50 bg-background overflow-y-auto">
       {/* 헤더 - 스크롤 시에도 종목명 고정 */}
-      <header className="h-[52px] flex items-center justify-between px-6 bg-white sticky top-0 z-10 border-b border-coolgray-50">
+      <header className="h-[52px] flex items-center justify-between px-6 bg-background sticky top-0 z-10 border-b border-border-subtle-lighter">
         <button
           onClick={onBack}
-          className="p-2 text-coolgray-800 hover:text-coolgray-900 transition-colors -ml-1"
+          className="p-2 text-foreground hover:text-foreground transition-colors -ml-1"
           aria-label="뒤로가기"
         >
-          <IconArrowLeft className="w-6 h-6" stroke={1.5} />
+          <ArrowLeft className="w-6 h-6" weight="regular" />
         </button>
         {showStickyTitle && (
-          <h1 className="flex-1 text-center text-base font-semibold tracking-tight text-coolgray-900 truncate mx-2">
+          <h1 className="flex-1 text-center text-base font-semibold tracking-tight text-foreground truncate mx-2">
             {item.title}
           </h1>
         )}
@@ -285,23 +295,23 @@ export default function InvestmentDetailView({
             <button
               type="button"
               onClick={toggleNotification}
-              className="p-2 text-coolgray-800 hover:text-coolgray-900 transition-colors"
+              className="p-2 text-foreground hover:text-foreground transition-colors"
               aria-label={notificationOn ? '알림 끄기' : '알림 켜기'}
             >
               {notificationOn ? (
-                <IconBell className="w-6 h-6" stroke={1.5} />
+                <Bell className="w-6 h-6" weight="regular" />
               ) : (
-                <IconBellOff className="w-6 h-6 text-coolgray-500" stroke={1.5} />
+                <BellSlash className="w-6 h-6 text-muted-foreground" weight="regular" />
               )}
             </button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="p-2 text-coolgray-800 hover:text-coolgray-900 transition-colors"
+                  className="p-2 text-foreground hover:text-foreground transition-colors"
                   aria-label="메뉴"
                 >
-                  <IconDotsVertical className="w-6 h-6" stroke={1.5} />
+                  <DotsThreeVertical className="w-6 h-6" weight="regular" />
                 </button>
               </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-[140px]">
@@ -327,11 +337,11 @@ export default function InvestmentDetailView({
         {/* 종목명 & 상태 + 다음 투자일 */}
         <section ref={overviewRef} className="py-6 space-y-4">
               <div ref={titleRef}>
-                <h2 className="text-2xl font-semibold tracking-tight text-coolgray-900 mb-2">
+                <h2 className="text-2xl font-semibold tracking-tight text-foreground mb-2">
                   {item.title}
                 </h2>
                 {isEditMode ? (
-                  <p className="text-sm text-coolgray-400">종목명은 수정할 수 없습니다</p>
+                  <p className="text-sm text-foreground-subtle">종목명은 수정할 수 없습니다</p>
                 ) : (
                   completed && (
                     <p className="text-sm font-medium text-green-600">
@@ -342,15 +352,15 @@ export default function InvestmentDetailView({
               </div>
               
               {/* 섹션 내비게이션 탭 - 제목 바로 아래에 위치, 스크롤 시 헤더 아래에 고정 */}
-              <div className="sticky top-[52px] z-10 -mx-6 px-6 bg-white border-b border-coolgray-50">
+              <div className="sticky top-[52px] z-10 -mx-6 px-6 bg-background border-b border-border-subtle-lighter">
                 <div className="flex gap-6">
                   <button
                     type="button"
                     onClick={() => handleTabClick('overview')}
                     className={`py-3 text-sm font-medium transition-colors border-b-2 ${
                       activeTab === 'overview'
-                        ? 'border-coolgray-900 text-coolgray-900'
-                        : 'border-transparent text-coolgray-400 hover:text-coolgray-700'
+                        ? 'border-foreground text-foreground'
+                        : 'border-transparent text-foreground-subtle hover:text-foreground-soft'
                     }`}
                   >
                     개요
@@ -360,8 +370,8 @@ export default function InvestmentDetailView({
                     onClick={() => handleTabClick('info')}
                     className={`py-3 text-sm font-medium transition-colors border-b-2 ${
                       activeTab === 'info'
-                        ? 'border-coolgray-900 text-coolgray-900'
-                        : 'border-transparent text-coolgray-400 hover:text-coolgray-700'
+                        ? 'border-foreground text-foreground'
+                        : 'border-transparent text-foreground-subtle hover:text-foreground-soft'
                     }`}
                   >
                     투자 정보
@@ -371,8 +381,8 @@ export default function InvestmentDetailView({
                     onClick={() => handleTabClick('history')}
                     className={`py-3 text-sm font-medium transition-colors border-b-2 ${
                       activeTab === 'history'
-                        ? 'border-coolgray-900 text-coolgray-900'
-                        : 'border-transparent text-coolgray-400 hover:text-coolgray-700'
+                        ? 'border-foreground text-foreground'
+                        : 'border-transparent text-foreground-subtle hover:text-foreground-soft'
                     }`}
                   >
                     납입 기록
@@ -380,11 +390,11 @@ export default function InvestmentDetailView({
                 </div>
               </div>
               {!isEditMode && nextPaymentDate && (
-                <Alert className="mt-1 border-none bg-primary/10 text-coolgray-800 px-4 py-3 rounded-2xl">
-                  <CalendarDays className="w-5 h-5 text-primary" />
+                <Alert className="mt-1 border-none bg-primary/10 text-foreground px-4 py-3 rounded-2xl">
+                  <CalendarBlank className="w-5 h-5 text-primary" />
                   <div className="flex items-baseline justify-between gap-4 col-start-2 w-full">
                     <div>
-                      <AlertTitle className="text-sm font-medium text-coolgray-700">
+                      <AlertTitle className="text-sm font-medium text-foreground-soft">
                         다음 투자일
                       </AlertTitle>
                       <AlertDescription className="mt-0.5 text-base font-semibold text-primary">
@@ -398,12 +408,12 @@ export default function InvestmentDetailView({
 
         {/* 진행률 - 수정 모드에서는 숨김 */}
         {!isEditMode && (
-          <section className="py-6 border-b border-coolgray-50">
-            <div className="flex justify-between text-base text-coolgray-500 mb-3">
+          <section className="py-6 border-b border-border-subtle-lighter">
+            <div className="flex justify-between text-base text-muted-foreground mb-3">
               <span className="font-medium">진행률</span>
-              <span className="font-bold text-coolgray-900">{progress}%</span>
+              <span className="font-bold text-foreground">{progress}%</span>
             </div>
-            <div className="w-full h-2 bg-coolgray-50 rounded-full overflow-hidden">
+            <div className="w-full h-2 bg-surface-hover rounded-full overflow-hidden">
               <div 
                 className={`h-full rounded-full transition-all duration-500 ${
                   completed ? 'bg-green-500' : 'bg-brand-500'
@@ -411,24 +421,24 @@ export default function InvestmentDetailView({
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <div className="flex justify-between text-sm text-coolgray-400 mt-3">
+            <div className="flex justify-between text-sm text-foreground-subtle mt-3">
               <span>시작: {formatFullDate(startDate)}</span>
               <span>종료: {formatFullDate(endDate)}</span>
             </div>
           </section>
         )}
 
-        <div className="divide-y divide-coolgray-50">
+        <div className="divide-y divide-border-subtle-lighter">
           {/* 투자 정보 / 수정 폼 */}
           <section ref={infoRef} className="py-6">
-              <h3 className="text-lg font-semibold tracking-tight text-coolgray-900 mb-4">
+              <h3 className="text-lg font-semibold tracking-tight text-foreground mb-4">
                 {isEditMode ? '투자 정보 수정' : '투자 정보'}
               </h3>
               <div className="space-y-6">
               {/* 월 투자금 */}
               {isEditMode ? (
                 <div className="space-y-1.5">
-                  <label className="block text-coolgray-900 font-bold text-base">월 투자금</label>
+                  <label className="block text-foreground font-bold text-base">월 투자금</label>
                   <InputWithUnit
                     value={editMonthlyAmount}
                     onChange={(e) => handleNumericInput(e.target.value, setEditMonthlyAmount)}
@@ -438,8 +448,8 @@ export default function InvestmentDetailView({
                 </div>
               ) : (
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-coolgray-500">월 투자금</span>
-                  <span className="text-base font-semibold text-coolgray-900">
+                  <span className="text-sm text-muted-foreground">월 투자금</span>
+                  <span className="text-base font-semibold text-foreground">
                     {formatCurrency(item.monthly_amount)}
                   </span>
                 </div>
@@ -448,7 +458,7 @@ export default function InvestmentDetailView({
             {/* 목표 기간 */}
             {isEditMode ? (
               <div className="space-y-1.5">
-                <label className="block text-coolgray-900 font-bold text-base">목표 기간</label>
+                <label className="block text-foreground font-bold text-base">목표 기간</label>
                 <InputWithUnit
                   value={editPeriodYears}
                   onChange={(e) => handleNumericInput(e.target.value, setEditPeriodYears)}
@@ -458,8 +468,8 @@ export default function InvestmentDetailView({
               </div>
             ) : (
               <div className="flex justify-between items-center">
-                <span className="text-sm text-coolgray-500">목표 기간</span>
-                <span className="text-base font-semibold text-coolgray-900">
+                <span className="text-sm text-muted-foreground">목표 기간</span>
+                <span className="text-base font-semibold text-foreground">
                   {item.period_years}년
                 </span>
               </div>
@@ -469,10 +479,10 @@ export default function InvestmentDetailView({
             {isEditMode ? (
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5">
-                  <label className="block text-coolgray-900 font-bold text-base">연 수익률</label>
+                  <label className="block text-foreground font-bold text-base">연 수익률</label>
                   <div className="group relative">
-                    <IconInfoCircle className="w-4 h-4 text-coolgray-400" aria-hidden />
-                    <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-48 p-2 bg-coolgray-800 text-white text-xs rounded-lg z-10">
+                    <Info className="w-4 h-4 text-foreground-subtle" aria-hidden />
+                    <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-48 p-2 bg-surface-dark text-white text-xs rounded-lg z-10">
                       수익률을 직접 수정하면 시스템 수익률 대신 직접 입력한 값이 적용됩니다.
                     </div>
                   </div>
@@ -503,13 +513,13 @@ export default function InvestmentDetailView({
             ) : (
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-sm text-coolgray-500">연 수익률</span>
+                  <span className="text-sm text-muted-foreground">연 수익률</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center rounded-full bg-coolgray-25 text-coolgray-600 text-xs font-medium px-2.5 py-1">
+                  <span className="inline-flex items-center rounded-full bg-surface text-foreground-muted text-xs font-medium px-2.5 py-1">
                     {isCustomRate ? '직접 입력' : '10년 평균'}
                   </span>
-                  <span className="text-base font-semibold text-coolgray-900">
+                  <span className="text-base font-semibold text-foreground">
                     {displayAnnualRate.toFixed(0)}%
                   </span>
                 </div>
@@ -519,14 +529,14 @@ export default function InvestmentDetailView({
             {/* 매월 투자일 */}
             {isEditMode ? (
               <div className="space-y-1.5">
-                <label className="block text-coolgray-900 font-bold text-base">
+                <label className="block text-foreground font-bold text-base">
                   매월 투자일
                 </label>
                 <div className="flex flex-wrap gap-1.5">
                   {[...editInvestmentDays].sort((a, b) => a - b).map((day) => (
                     <span
                       key={day}
-                      className="inline-flex items-center gap-1 bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full text-xs font-medium"
+                      className="inline-flex items-center gap-1 bg-[var(--brand-accent-bg)] text-[var(--brand-accent-text)] px-2 py-0.5 rounded-full text-xs font-medium"
                     >
                       {day}일
                       <button
@@ -541,7 +551,7 @@ export default function InvestmentDetailView({
                   <button
                     type="button"
                     onClick={() => setIsDaysPickerOpen(true)}
-                    className="inline-flex items-center bg-coolgray-50 text-coolgray-700 px-2 py-0.5 rounded-full text-xs font-semibold hover:bg-coolgray-100 transition-colors"
+                    className="inline-flex items-center bg-surface-hover text-foreground-soft px-2 py-0.5 rounded-full text-xs font-semibold hover:bg-secondary transition-colors"
                   >
                     + 추가
                   </button>
@@ -549,35 +559,35 @@ export default function InvestmentDetailView({
               </div>
             ) : (
               <div className="flex justify-between items-center">
-                <span className="text-sm text-coolgray-500">매월 투자일</span>
-                <span className="text-base font-semibold text-coolgray-900">
+                <span className="text-sm text-muted-foreground">매월 투자일</span>
+                <span className="text-base font-semibold text-foreground">
                   {formatInvestmentDays(item.investment_days)}
                 </span>
               </div>
             )}
 
-            <div className="border-t border-coolgray-50 my-2" />
+            <div className="border-t border-border-subtle-lighter my-2" />
             
             {/* 총 원금 */}
             <div className="flex justify-between items-center">
-              <span className="text-sm text-coolgray-500">총 원금</span>
-              <span className="text-base font-semibold text-coolgray-900">
+              <span className="text-sm text-muted-foreground">총 원금</span>
+              <span className="text-base font-semibold text-foreground">
                 {formatCurrency(totalPrincipal)}
               </span>
             </div>
             
             {/* 예상 수익 */}
             <div className="flex justify-between items-center">
-              <span className="text-sm text-coolgray-500">예상 수익</span>
-              <span className="text-base font-semibold text-coolgray-900">
+              <span className="text-sm text-muted-foreground">예상 수익</span>
+              <span className="text-base font-semibold text-foreground">
                 + {formatCurrency(calculatedProfit)}
               </span>
             </div>
 
             {/* 만기 시 예상 금액 */}
             <div className="flex justify-between items-center">
-              <span className="text-sm text-coolgray-500">만기 시 예상 금액</span>
-              <span className="text-base font-semibold text-coolgray-900">
+              <span className="text-sm text-muted-foreground">만기 시 예상 금액</span>
+              <span className="text-base font-semibold text-foreground">
                 {formatCurrency(calculatedFutureValue)}
               </span>
             </div>
@@ -587,24 +597,24 @@ export default function InvestmentDetailView({
             {/* 월별 납입 기록 - 하단 배치, 시작일부터, 페이징 */}
             {!isEditMode && fullPaymentHistory.length > 0 && (
               <section ref={historyRef} className="py-6">
-                <h3 className="text-lg font-semibold tracking-tight text-coolgray-900 mb-3">월별 납입 기록</h3>
+                <h3 className="text-lg font-semibold tracking-tight text-foreground mb-3">월별 납입 기록</h3>
                 <div className="overflow-x-auto rounded-lg">
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-coolgray-200 hover:bg-transparent">
-                        <TableHead className="text-coolgray-600 font-semibold text-sm">월</TableHead>
-                        <TableHead className="text-coolgray-600 font-semibold text-sm">투자일</TableHead>
-                        <TableHead className="text-coolgray-600 font-semibold text-sm">납입 금액</TableHead>
-                        <TableHead className="text-coolgray-600 font-semibold text-sm">상태</TableHead>
+                      <TableRow className="border-border hover:bg-transparent">
+                        <TableHead className="text-foreground-muted font-semibold text-sm">월</TableHead>
+                        <TableHead className="text-foreground-muted font-semibold text-sm">투자일</TableHead>
+                        <TableHead className="text-foreground-muted font-semibold text-sm">납입 금액</TableHead>
+                        <TableHead className="text-foreground-muted font-semibold text-sm">상태</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {paymentHistory.map(({ monthLabel, yearMonth, completed: monthCompleted }) => (
-                        <TableRow key={yearMonth} className="border-coolgray-100">
-                          <TableCell className="font-medium text-coolgray-900 text-sm">
+                        <TableRow key={yearMonth} className="border-border-subtle">
+                          <TableCell className="font-medium text-foreground text-sm">
                             {yearMonth.replace('-', '.')}
                           </TableCell>
-                          <TableCell className="text-coolgray-600 text-sm">
+                          <TableCell className="text-foreground-muted text-sm">
                             {item.investment_days && item.investment_days.length > 0
                               ? [...item.investment_days].sort((a, b) => a - b).map((d) => {
                                   const [y, m] = yearMonth.split('-')
@@ -612,7 +622,7 @@ export default function InvestmentDetailView({
                                 }).join(', ')
                               : '-'}
                           </TableCell>
-                          <TableCell className="text-coolgray-600 text-sm">
+                          <TableCell className="text-foreground-muted text-sm">
                             {formatCurrency(item.monthly_amount)}
                           </TableCell>
                           <TableCell className="text-sm">
@@ -631,7 +641,7 @@ export default function InvestmentDetailView({
                   <button
                     type="button"
                     onClick={() => setVisiblePaymentMonths((prev) => prev + 10)}
-                    className="mt-3 w-full py-2.5 text-sm font-medium text-coolgray-600 bg-coolgray-50 hover:bg-coolgray-100 rounded-lg transition-colors"
+                    className="mt-3 w-full py-2.5 text-sm font-medium text-foreground-muted bg-surface-hover hover:bg-secondary rounded-lg transition-colors"
                   >
                     이어서 보기
                   </button>
@@ -642,22 +652,22 @@ export default function InvestmentDetailView({
 
         {/* 하단 버튼 - 편집 모드에서만 */}
         {isEditMode && (
-          <div className="sticky bottom-0 bg-white pt-4 pb-6 px-6">
+          <div className="sticky bottom-0 bg-background pt-4 pb-6 px-6">
             <div className="flex gap-3">
               <button
                 onClick={handleCancel}
                 disabled={isUpdating}
-                className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-coolgray-100 hover:bg-coolgray-200 text-coolgray-700 font-semibold rounded-xl transition-colors disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-secondary hover:bg-surface-strong text-foreground-soft font-semibold rounded-xl transition-colors disabled:opacity-50"
               >
-                <IconX className="w-5 h-5" />
+                <X className="w-5 h-5" />
                 취소
               </button>
               <button
                 onClick={handleSave}
                 disabled={isUpdating}
-                className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl transition-colors disabled:opacity-50"
               >
-                <IconCheck className="w-5 h-5" />
+                <Check className="w-5 h-5" />
                 {isUpdating ? '저장 중...' : '저장'}
               </button>
             </div>
@@ -679,13 +689,13 @@ export default function InvestmentDetailView({
           />
           
           {/* 모달 컨텐츠 */}
-          <div className="relative z-[60] w-full max-w-md mx-4 bg-white rounded-2xl shadow-lg p-6">
+          <div className="relative z-[60] w-full max-w-md mx-4 bg-card rounded-2xl shadow-lg p-6">
             {/* 헤더 */}
             <div className="mb-4">
-              <h2 className="text-xl font-semibold tracking-tight text-coolgray-900 mb-3">
+              <h2 className="text-xl font-semibold tracking-tight text-foreground mb-3">
                 정말 삭제하시겠습니까?
               </h2>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 삭제된 투자 기록은 복구할 수 없습니다.
               </p>
             </div>
@@ -695,7 +705,7 @@ export default function InvestmentDetailView({
               <button
                 onClick={() => setShowDeleteModal(false)}
                 disabled={isDeleting}
-                className="flex-1 py-3 text-base font-medium text-coolgray-700 bg-coolgray-100 rounded-xl hover:bg-coolgray-200 transition-colors disabled:opacity-50"
+                className="flex-1 py-3 text-base font-medium text-foreground-soft bg-secondary rounded-xl hover:bg-surface-strong transition-colors disabled:opacity-50"
               >
                 취소
               </button>
