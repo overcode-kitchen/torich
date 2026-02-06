@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { IconX } from '@tabler/icons-react'
+import { X } from '@phosphor-icons/react'
 
 interface InvestmentDaysPickerSheetProps {
   /** 현재 선택된 날짜들 (1~31) */
@@ -35,21 +35,21 @@ export default function InvestmentDaysPickerSheet({
       <div className="fixed inset-0 bg-black/50 animate-in fade-in-0 duration-200" onClick={onClose} />
 
       {/* 바텀 시트 */}
-      <div className="relative z-50 w-full max-w-md bg-white rounded-t-3xl shadow-xl animate-in slide-in-from-bottom duration-300 max-h-[85vh] flex flex-col">
+      <div className="relative z-50 w-full max-w-md bg-card rounded-t-3xl shadow-xl animate-in slide-in-from-bottom duration-300 max-h-[85vh] flex flex-col">
         {/* 핸들 바 */}
         <div className="flex justify-center pt-3 pb-2">
-          <div className="w-10 h-1 bg-coolgray-200 rounded-full" />
+          <div className="w-10 h-1 bg-surface-strong rounded-full" />
         </div>
 
         {/* 헤더 */}
         <div className="flex items-center justify-between px-6 pb-4">
-          <h2 className="text-lg font-bold text-coolgray-900">매월 투자일 선택</h2>
+          <h2 className="text-lg font-bold text-foreground">매월 투자일 선택</h2>
           <button
             onClick={onClose}
-            className="p-1 text-coolgray-400 hover:text-coolgray-600 transition-colors"
+            className="p-1 text-foreground-subtle hover:text-foreground-muted transition-colors"
             aria-label="닫기"
           >
-            <IconX className="w-5 h-5" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -60,14 +60,14 @@ export default function InvestmentDaysPickerSheet({
               {tempDays.map((day) => (
                 <span
                   key={day}
-                  className="inline-flex items-center bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full text-xs font-medium"
+                  className="inline-flex items-center bg-[var(--brand-accent-bg)] text-[var(--brand-accent-text)] px-2 py-0.5 rounded-full text-xs font-medium"
                 >
                   {day}일
                 </span>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-coolgray-400 text-right">선택된 날짜가 없어요</p>
+            <p className="text-sm text-foreground-subtle text-right">선택된 날짜가 없어요</p>
           )}
         </div>
 
@@ -88,8 +88,8 @@ export default function InvestmentDaysPickerSheet({
                   }}
                   className={`h-9 rounded-full text-sm font-semibold transition-colors ${
                     selected
-                      ? 'bg-brand-600 text-white'
-                      : 'bg-coolgray-50 text-coolgray-700 hover:bg-coolgray-100'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-surface-hover text-foreground-soft hover:bg-secondary'
                   }`}
                 >
                   {day}
@@ -100,11 +100,11 @@ export default function InvestmentDaysPickerSheet({
         </div>
 
         {/* 푸터 */}
-        <div className="px-6 py-4 border-t border-coolgray-100 flex gap-3">
+        <div className="px-6 py-4 border-t border-border-subtle flex gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-3 text-sm font-semibold text-coolgray-700 bg-coolgray-100 rounded-xl hover:bg-coolgray-200 transition-colors"
+            className="flex-1 py-3 text-sm font-semibold text-foreground-soft bg-secondary rounded-xl hover:bg-surface-strong transition-colors"
           >
             취소
           </button>
@@ -112,7 +112,7 @@ export default function InvestmentDaysPickerSheet({
             type="button"
             onClick={() => onApply(normalizeDays(tempDays))}
             disabled={!isDirty}
-            className="flex-1 py-3 text-sm font-semibold text-white bg-brand-600 rounded-xl hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-default"
+            className="flex-1 py-3 text-sm font-semibold text-primary-foreground bg-primary rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-default"
           >
             적용
           </button>

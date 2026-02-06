@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { IconLoader2 } from '@tabler/icons-react'
+import { CircleNotch } from '@phosphor-icons/react'
 import { useAuth } from '@/app/hooks/useAuth'
 import { useInvestments } from '@/app/hooks/useInvestments'
 import { useRateUpdate } from '@/app/hooks/useRateUpdate'
@@ -32,17 +32,17 @@ export default function Home() {
 
   if (authLoading || dataLoading) {
     return (
-      <main className="min-h-screen bg-coolgray-25 flex items-center justify-center">
-        <IconLoader2 className="w-8 h-8 animate-spin text-brand-600" />
+      <main className="min-h-screen bg-surface flex items-center justify-center">
+        <CircleNotch className="w-8 h-8 animate-spin text-brand-600" />
       </main>
     )
   }
 
   if (isUpdatingRates) {
     return (
-      <main className="min-h-screen bg-coolgray-25 flex flex-col items-center justify-center gap-4">
-        <IconLoader2 className="w-10 h-10 animate-spin text-brand-600" />
-        <p className="text-coolgray-600 text-sm">최신 데이터 반영 중...</p>
+      <main className="min-h-screen bg-surface flex flex-col items-center justify-center gap-4">
+        <CircleNotch className="w-10 h-10 animate-spin text-brand-600" />
+        <p className="text-foreground-muted text-sm">최신 데이터 반영 중...</p>
       </main>
     )
   }

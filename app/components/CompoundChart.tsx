@@ -143,6 +143,34 @@ export default function CompoundChart({
     return chartData.find((d) => d.breakEven)
   }, [chartData])
 
+  // 차트 색상: 시맨틱 토큰 기반으로 라이트/다크 공통 대응
+  const chartColors = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return {
+        grid: '#E6E7E8',
+        axis: '#9C9EA6',
+        principal: '#9C9EA6',
+        totalAsset: '#16A34A',
+        profit: '#15803D',
+        breakEven: '#16A34A',
+      }
+    }
+    const root = getComputedStyle(document.documentElement)
+    const axis = root.getPropertyValue('--foreground-subtle').trim() || '#9C9EA6'
+    const grid = root.getPropertyValue('--border-subtle').trim() || '#E6E7E8'
+    const profitLine = root.getPropertyValue('--chart-profit').trim() || '#16A34A'
+    const principalLine = root.getPropertyValue('--foreground-subtle').trim() || '#9C9EA6'
+
+    return {
+      grid,
+      axis,
+      principal: principalLine,
+      totalAsset: profitLine,
+      profit: profitLine,
+      breakEven: profitLine,
+    }
+  }, [])
+
   // 커스텀 툴팁
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -152,24 +180,24 @@ export default function CompoundChart({
       const timeLabel = `${yearText}${monthText}`.trim() || `${data.month}개월`
       
       return (
-        <div className="bg-white border border-coolgray-200 rounded-lg p-3 shadow-lg">
-          <p className="text-xs text-coolgray-500 mb-2">{timeLabel}</p>
+        <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+          <p className="text-xs text-muted-foreground mb-2">{timeLabel}</p>
           <div className="space-y-1">
             <div className="flex justify-between gap-4">
-              <span className="text-xs text-coolgray-600">원금</span>
-              <span className="text-xs font-semibold text-coolgray-900">
+              <span className="text-xs text-foreground-muted">원금</span>
+              <span className="text-xs font-semibold text-foreground">
                 {formatCurrency(data.principal)}
               </span>
             </div>
             <div className="flex justify-between gap-4">
-              <span className="text-xs text-coolgray-600">예상 수익</span>
+              <span className="text-xs text-foreground-muted">예상 수익</span>
               <span className="text-xs font-semibold text-brand-600">
                 +{formatCurrency(data.profit)}
               </span>
             </div>
-            <div className="flex justify-between gap-4 border-t border-coolgray-100 pt-1 mt-1">
-              <span className="text-xs font-medium text-coolgray-700">총 자산</span>
-              <span className="text-xs font-bold text-coolgray-900">
+            <div className="flex justify-between gap-4 border-t border-border-subtle pt-1 mt-1">
+              <span className="text-xs font-medium text-foreground-soft">총 자산</span>
+              <span className="text-xs font-bold text-foreground">
                 {formatCurrency(data.totalAsset)}
               </span>
             </div>
@@ -183,7 +211,7 @@ export default function CompoundChart({
   // 빈 상태
   if (investments.length === 0 || totalMonthlyPayment === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-[200px] text-coolgray-400">
+      <div className="flex flex-col items-center justify-center h-[200px] text-foreground-subtle">
         <p className="text-sm">투자를 추가하면 차트가 표시됩니다</p>
       </div>
     )
@@ -195,14 +223,14 @@ export default function CompoundChart({
       <div className="h-[200px] -ml-4 -mr-4">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#E6E7E8" horizontal={true} vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} horizontal={true} vertical={false} />
             <XAxis
               dataKey="month"
               tickFormatter={(value) => {
                 const dataPoint = chartData.find((d) => d.month === value)
                 return dataPoint?.monthLabel || ''
               }}
-              stroke="#9C9EA6"
+              stroke={chartColors.axis}
               fontSize={11}
               tickLine={false}
               axisLine={false}
@@ -214,7 +242,7 @@ export default function CompoundChart({
                 }
                 return `${value}`
               }}
-              stroke="#9C9EA6"
+              stroke={chartColors.axis}
               fontSize={11}
               tickLine={false}
               axisLine={false}
@@ -223,14 +251,14 @@ export default function CompoundChart({
             <Legend 
               wrapperStyle={{ paddingTop: '10px' }}
               iconType="line"
-              formatter={(value) => <span className="text-xs text-coolgray-700">{value}</span>}
+              formatter={(value) => <span className="text-xs text-foreground-soft">{value}</span>}
             />
             
             {/* 원금 라인 (회색 점선) */}
             <Line
               type="monotone"
               dataKey="principal"
-              stroke="#9C9EA6"
+              stroke={chartColors.principal}
               strokeWidth={1.5}
               strokeDasharray="4 4"
               dot={false}
@@ -241,7 +269,7 @@ export default function CompoundChart({
             <Line
               type="monotone"
               dataKey="totalAsset"
-              stroke="#02c463"
+              stroke={chartColors.totalAsset}
               strokeWidth={2}
               dot={false}
               name="총 자산"
@@ -251,7 +279,7 @@ export default function CompoundChart({
             <Line
               type="monotone"
               dataKey="profit"
-              stroke="#02b25a"
+              stroke={chartColors.profit}
               strokeWidth={2.5}
               dot={false}
               name="예상 수익"
@@ -261,7 +289,7 @@ export default function CompoundChart({
             {breakEvenPoint && (
               <ReferenceLine
                 x={breakEvenPoint.month}
-                stroke="#02c463"
+                stroke={chartColors.breakEven}
                 strokeDasharray="2 2"
                 strokeWidth={1.5}
               />
@@ -271,25 +299,25 @@ export default function CompoundChart({
       </div>
 
       {/* 하단 요약 정보 */}
-      <div className="flex items-center justify-between pt-2 border-t border-coolgray-100">
+      <div className="flex items-center justify-between pt-2 border-t border-border-subtle">
         <div className="flex items-center gap-4">
           <div>
-            <p className="text-xs text-coolgray-500 mb-0.5">원금</p>
-            <p className="text-sm font-semibold text-coolgray-900">
+            <p className="text-xs text-muted-foreground mb-0.5">원금</p>
+            <p className="text-sm font-semibold text-foreground">
               {formatCurrency(summary.principal)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-coolgray-500 mb-0.5">예상 수익</p>
-            <p className="text-sm font-semibold text-brand-600">
+            <p className="text-xs text-muted-foreground mb-0.5">예상 수익</p>
+            <p className="text-sm font-semibold text-foreground">
               +{formatCurrency(summary.profit)}
             </p>
           </div>
         </div>
         {breakEvenPoint && (
           <div className="text-right">
-            <p className="text-xs text-coolgray-500 mb-0.5">복리 역전</p>
-            <p className="text-xs font-semibold text-brand-600">
+            <p className="text-xs text-muted-foreground mb-0.5">복리 역전</p>
+            <p className="text-xs font-semibold text-foreground-soft">
               ⚡ {breakEvenPoint.month}개월
             </p>
           </div>

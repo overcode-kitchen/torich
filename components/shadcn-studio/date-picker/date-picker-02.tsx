@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-import { ChevronDownIcon } from 'lucide-react'
+import { CaretDown } from '@phosphor-icons/react'
 import { type DateRange } from 'react-day-picker'
 
 import { Button } from '@/components/ui/button'
@@ -24,7 +24,7 @@ const DatePickerRangeDemo = () => {
             {range?.from && range?.to
               ? `${range.from.toLocaleDateString()} - ${range.to.toLocaleDateString()}`
               : 'Pick a date'}
-            <ChevronDownIcon />
+            <CaretDown />
           </Button>
         </PopoverTrigger>
         <PopoverContent className='w-auto overflow-hidden p-0' align='start'>

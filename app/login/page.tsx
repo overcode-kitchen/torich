@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { IconLoader2, IconArrowLeft } from '@tabler/icons-react'
+import { CircleNotch, ArrowLeft } from '@phosphor-icons/react'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -81,19 +81,19 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-coolgray-25 flex items-center justify-center px-4 relative">
+    <main className="min-h-screen bg-surface flex items-center justify-center px-4 relative">
       {/* 뒤로가기 버튼 */}
       <button
         onClick={() => router.back()}
-        className="absolute top-4 left-4 p-2 text-coolgray-700 hover:text-coolgray-900 transition-colors"
+        className="absolute top-4 left-4 p-2 text-foreground-soft hover:text-foreground transition-colors"
         aria-label="뒤로가기"
       >
-        <IconArrowLeft className="w-6 h-6" />
+        <ArrowLeft className="w-6 h-6" />
       </button>
 
       <div className="w-full max-w-xs">
         {/* 타이틀 */}
-        <h1 className="text-3xl font-bold text-coolgray-900 text-center mb-12">
+        <h1 className="text-3xl font-bold text-foreground text-center mb-12">
           티끌모아 태산
         </h1>
 
@@ -101,11 +101,11 @@ export default function LoginPage() {
         <button
           onClick={handleGoogleLogin}
           disabled={isLoading}
-          className="w-full bg-white text-coolgray-700 font-medium rounded-xl shadow-md py-4 px-6 flex items-center justify-center gap-3 hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-card text-foreground-soft font-medium rounded-xl shadow-md py-4 px-6 flex items-center justify-center gap-3 hover:bg-surface-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? (
             <>
-              <IconLoader2 className="w-5 h-5 animate-spin" />
+              <CircleNotch className="w-5 h-5 animate-spin" />
               <span>연결 중...</span>
             </>
           ) : (
@@ -143,11 +143,11 @@ export default function LoginPage() {
           <button
             onClick={handleTestLogin}
             disabled={isLoading}
-            className="w-full bg-gray-100 text-gray-700 font-medium rounded-xl py-4 px-6 flex items-center justify-center gap-2 hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-3"
+            className="w-full bg-secondary text-foreground-soft font-medium rounded-xl py-4 px-6 flex items-center justify-center gap-2 hover:bg-surface-strong transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-3"
           >
             {isLoading ? (
               <>
-                <IconLoader2 className="w-5 h-5 animate-spin" />
+                <CircleNotch className="w-5 h-5 animate-spin" />
                 <span>로그인 중...</span>
               </>
             ) : (

@@ -11,7 +11,7 @@
 chore: .cursorrules 디자인 시스템 규칙 추가
 
 - Role & Vibe: Senior Frontend Engineer 역할, Pixel-Perfect·Airy·Accessible UI 목표
-- Tech Stack: Next.js App Router, Tailwind CSS, shadcn/ui, lucide-react
+- Tech Stack: Next.js App Router, Tailwind CSS, shadcn/ui, @phosphor-icons/react
 - Design System: text-base(16px) 기본, 넉넉한 스페이싱(gap-6, p-6, py-8)
 - Headings: H1/H2/H3 tracking-tight, rounded-xl 기본 radius
 - Colors: semantic colors 사용, raw hex 금지

@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 // import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import AppLayout from "./components/AppLayout";
+import ThemeProvider from "./components/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,12 +26,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AppLayout>{children}</AppLayout>
-        {/* <GoogleAnalytics gaId="G-C8E4VZ883Y" /> */}
+        <ThemeProvider>
+          <AppLayout>{children}</AppLayout>
+          {/* <GoogleAnalytics gaId="G-C8E4VZ883Y" /> */}
+        </ThemeProvider>
       </body>
     </html>
   );

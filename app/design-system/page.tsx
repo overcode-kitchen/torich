@@ -4,15 +4,15 @@ import { useState } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
-  IconPlus,
-  IconLoader2,
-  IconChevronDown,
-  IconX,
-  IconAlertCircle,
-  IconAlertTriangle,
-  IconCopy,
-  IconCheck,
-} from "@tabler/icons-react"
+  Plus,
+  CircleNotch,
+  CaretDown,
+  X,
+  Info,
+  Warning,
+  Copy,
+  Check,
+} from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 
 export default function DesignSystemPage() {
@@ -37,8 +37,8 @@ export default function DesignSystemPage() {
           </p>
         </header>
 
-        {/* 탭 */}
-        <div className="flex flex-wrap gap-2">
+        {/* 탭 - 스크롤 시 상단 고정 */}
+        <div className="sticky top-0 z-10 -mx-4 px-4 py-3 flex flex-wrap gap-2 bg-coolgray-25 border-b border-coolgray-200">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -122,15 +122,15 @@ export default function DesignSystemPage() {
                   <p className="text-sm font-medium text-coolgray-700 mb-3">Variant</p>
                   <div className="grid gap-4 sm:grid-cols-2">
                     {[
-                      { label: "Primary", variant: "default" as const, token: "btn-primary" },
-                      { label: "Secondary", variant: "secondary" as const, token: "btn-secondary" },
-                      { label: "Outline", variant: "outline" as const, token: "btn-outline" },
-                      { label: "Ghost", variant: "ghost" as const, token: "btn-ghost" },
-                      { label: "Link", variant: "link" as const, token: "btn-link" },
-                      { label: "Destructive", variant: "destructive" as const, token: "btn-destructive" },
-                    ].map(({ label, variant, token }) => (
+                      { label: "Primary", variant: "default" as const, token: "btn-primary", usage: "메인 액션 (저장, 확인, 시작)" },
+                      { label: "Secondary", variant: "secondary" as const, token: "btn-secondary", usage: "보조 액션 (취소, 이전)" },
+                      { label: "Outline", variant: "outline" as const, token: "btn-outline", usage: "테두리 강조 (선택·필터 등)" },
+                      { label: "Ghost", variant: "ghost" as const, token: "btn-ghost", usage: "최소 강조 (토글, 보조 클릭)" },
+                      { label: "Link", variant: "link" as const, token: "btn-link", usage: "텍스트 링크 (더보기, 상세)" },
+                      { label: "Destructive", variant: "destructive" as const, token: "btn-destructive", usage: "위험 액션 (삭제, 취소 등)" },
+                    ].map(({ label, variant, token, usage }) => (
                       <div key={token} className="space-y-2 rounded-lg border border-border p-3">
-                        <NameLabel label={label} token={token} />
+                        <NameLabel label={label} token={token} usage={usage} />
                         <Button variant={variant}>{label}</Button>
                       </div>
                     ))}
@@ -140,13 +140,13 @@ export default function DesignSystemPage() {
                   <p className="text-sm font-medium text-coolgray-700 mb-3">Size</p>
                   <div className="grid gap-4 sm:grid-cols-2">
                     {[
-                      { label: "XS", size: "xs" as const, token: "btn-size-xs", text: "XS" },
-                      { label: "Small", size: "sm" as const, token: "btn-size-sm", text: "Small" },
-                      { label: "Default", size: "default" as const, token: "btn-size-md", text: "Default" },
-                      { label: "Large", size: "lg" as const, token: "btn-size-lg", text: "Large" },
-                    ].map(({ label, size, token, text }) => (
+                      { label: "XS", size: "xs" as const, token: "btn-size-xs", text: "XS", usage: "칩·태그 내부 액션" },
+                      { label: "Small", size: "sm" as const, token: "btn-size-sm", text: "Small", usage: "테이블·리스트 보조" },
+                      { label: "Default", size: "default" as const, token: "btn-size-md", text: "Default", usage: "일반 폼·카드" },
+                      { label: "Large", size: "lg" as const, token: "btn-size-lg", text: "Large", usage: "메인 CTA, 모달 확인" },
+                    ].map(({ label, size, token, text, usage }) => (
                       <div key={token} className="space-y-2 rounded-lg border border-border p-3">
-                        <NameLabel label={label} token={token} />
+                        <NameLabel label={label} token={token} usage={usage} />
                         <Button size={size}>{text}</Button>
                       </div>
                     ))}
@@ -170,15 +170,15 @@ export default function DesignSystemPage() {
                   <p className="text-sm font-medium text-coolgray-700 mb-3">Icon 버튼</p>
                   <div className="grid gap-4 sm:grid-cols-2">
                     {[
-                      { label: "Icon XS", size: "icon-xs" as const, token: "btn-icon-xs" },
-                      { label: "Icon SM", size: "icon-sm" as const, token: "btn-icon-sm" },
-                      { label: "Icon MD", size: "icon" as const, token: "btn-icon-md" },
-                      { label: "Icon LG", size: "icon-lg" as const, token: "btn-icon-lg" },
-                    ].map(({ label, size, token }) => (
+                      { label: "Icon XS", size: "icon-xs" as const, token: "btn-icon-xs", usage: "테이블·인라인 토글" },
+                      { label: "Icon SM", size: "icon-sm" as const, token: "btn-icon-sm", usage: "리스트·카드 보조" },
+                      { label: "Icon MD", size: "icon" as const, token: "btn-icon-md", usage: "헤더·툴바 액션" },
+                      { label: "Icon LG", size: "icon-lg" as const, token: "btn-icon-lg", usage: "강조 아이콘만" },
+                    ].map(({ label, size, token, usage }) => (
                       <div key={token} className="space-y-2 rounded-lg border border-border p-3 text-center">
-                        <NameLabel label={label} token={token} />
+                        <NameLabel label={label} token={token} usage={usage} />
                         <Button size={size} variant="outline" aria-label={label}>
-                          <IconPlus />
+                          <Plus />
                         </Button>
                       </div>
                     ))}
@@ -189,9 +189,9 @@ export default function DesignSystemPage() {
                     Primary + Icon (메인 액션)
                   </p>
                   <div className="space-y-2 rounded-lg border border-border p-3">
-                    <NameLabel label="CTA Button" token="btn-primary-cta" />
+                    <NameLabel label="CTA Button" token="btn-primary-cta" usage="투자 추가, 저장, 시작 등 핵심 CTA" />
                     <Button size="lg" className="w-full sm:w-auto">
-                      <IconPlus className="size-5" />
+                      <Plus className="size-5" />
                       메인 액션 버튼
                     </Button>
                   </div>
@@ -242,7 +242,7 @@ export default function DesignSystemPage() {
                     token="card-cta"
                     usage="홈 투자 목록 추가 버튼, add 페이지, InvestmentDetailView, InvestmentDaysPickerSheet"
                   />
-                  <div className="rounded-2xl bg-brand-600 px-4 py-4 text-white">
+                  <div className="rounded-2xl bg-primary px-4 py-4 text-primary-foreground">
                     <p className="font-semibold">콜투액션 제목입니다</p>
                     <p className="text-sm text-white/90 mt-0.5">간단한 설명 또는 한 줄 안내 문장입니다.</p>
                   </div>
@@ -376,7 +376,10 @@ export default function DesignSystemPage() {
                       { n: 600, light: false },
                       { n: 700, light: false },
                       { n: 800, light: false },
+                      { n: 850, light: false },
                       { n: 900, light: false },
+                      { n: 950, light: false },
+                      { n: 1000, light: false },
                     ].map(({ n, light }) => (
                       <div key={n} className="space-y-1">
                         <div className="flex items-center justify-between">
@@ -398,7 +401,10 @@ export default function DesignSystemPage() {
                             n === 600 && "bg-coolgray-600",
                             n === 700 && "bg-coolgray-700",
                             n === 800 && "bg-coolgray-800",
-                            n === 900 && "bg-coolgray-900"
+                            n === 850 && "bg-coolgray-850",
+                            n === 900 && "bg-coolgray-900",
+                            n === 950 && "bg-coolgray-950",
+                            n === 1000 && "bg-coolgray-1000"
                           )}
                         >
                           {n}
@@ -418,10 +424,10 @@ export default function DesignSystemPage() {
               <div className="rounded-xl border border-coolgray-200 bg-white p-6">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
                   {[
-                    { icon: <IconPlus className="size-8" />, label: "IconPlus", usage: "추가 / 생성", token: "icon-plus" },
-                    { icon: <IconLoader2 className="size-8 animate-spin text-muted-foreground" />, label: "IconLoader2", usage: "로딩 상태", token: "icon-loader" },
-                    { icon: <IconChevronDown className="size-8" />, label: "IconChevronDown", usage: "드롭다운", token: "icon-chevron-down" },
-                    { icon: <IconX className="size-8" />, label: "IconX", usage: "닫기 / 해제", token: "icon-close" },
+                    { icon: <Plus className="size-8" />, label: "Plus", usage: "추가 / 생성", token: "icon-plus" },
+                    { icon: <CircleNotch className="size-8 animate-spin text-muted-foreground" />, label: "CircleNotch", usage: "로딩 상태", token: "icon-loader" },
+                    { icon: <CaretDown className="size-8" />, label: "CaretDown", usage: "드롭다운", token: "icon-chevron-down" },
+                    { icon: <X className="size-8" />, label: "X", usage: "닫기 / 해제", token: "icon-close" },
                   ].map(({ icon, label, usage, token }) => (
                     <div key={label} className="space-y-2">
                       <NameLabel label={label} token={token} />
@@ -433,7 +439,7 @@ export default function DesignSystemPage() {
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground mt-4">
-                  Tabler Icons 기반으로 일관된 스트로크와 크기를 유지합니다. 필요 시 lucide-react 대체 아이콘 사용을 검토합니다.
+                  Phosphor Icons 기반으로 일관된 스트로크와 크기를 유지합니다.
                 </p>
               </div>
             </section>
@@ -451,7 +457,7 @@ export default function DesignSystemPage() {
                 <div className="space-y-2">
                   <NameLabel label="상태 · 정보" token="pattern-alert-info" />
                   <Alert>
-                    <IconAlertCircle className="text-primary" />
+                    <Info className="text-primary" />
                     <AlertTitle>정보 메시지</AlertTitle>
                     <AlertDescription>기본 상태 안내에 사용하는 메시지 예시입니다.</AlertDescription>
                   </Alert>
@@ -459,7 +465,7 @@ export default function DesignSystemPage() {
                 <div className="space-y-2">
                   <NameLabel label="상태 · 경고" token="pattern-alert-warning" />
                   <Alert variant="destructive">
-                    <IconAlertTriangle className="text-destructive" />
+                    <Warning className="text-destructive" />
                     <AlertTitle>경고 메시지</AlertTitle>
                     <AlertDescription>유효성 오류나 위험 상황을 강조할 때 사용합니다.</AlertDescription>
                   </Alert>
@@ -503,7 +509,7 @@ export default function DesignSystemPage() {
                   <ul className="list-disc list-inside space-y-1">
                     <li>아이템 간 간격은 12~16px을 유지합니다.</li>
                     <li>필요 시 우측에 보조 액션 버튼을 배치합니다.</li>
-                    <li>구분선은 `border-coolgray-100`를 사용합니다.</li>
+                    <li>구분선은 <code>border-border-subtle</code>를 사용합니다.</li>
                   </ul>
                 </div>
               </div>
@@ -529,7 +535,7 @@ export default function DesignSystemPage() {
                       className="rounded-full p-2 text-coolgray-500 hover:text-coolgray-900"
                       aria-label="닫기"
                     >
-                      <IconX className="size-5" />
+                      <X className="size-5" />
                     </button>
                   </div>
                   <div className="mt-5 flex flex-wrap gap-3">
@@ -618,7 +624,7 @@ export default function DesignSystemPage() {
                 <div className="space-y-2">
                   <NameLabel label="로딩 · 인라인" token="pattern-loading-inline" />
                   <div className="flex items-center gap-3 rounded-2xl bg-coolgray-25 px-4 py-3">
-                    <IconLoader2 className="size-5 animate-spin text-brand-600" />
+                    <CircleNotch className="size-5 animate-spin text-brand-600" />
                     <span className="text-base text-coolgray-700">목록을 불러오는 중입니다.</span>
                   </div>
                 </div>
@@ -637,7 +643,7 @@ export default function DesignSystemPage() {
                 <div className="space-y-2">
                   <NameLabel label="로딩 · 버튼" token="pattern-loading-button" />
                   <Button size="lg" disabled className="w-full sm:w-auto">
-                    <IconLoader2 className="size-4 animate-spin" />
+                    <CircleNotch className="size-4 animate-spin" />
                     처리 중입니다
                   </Button>
                 </div>
@@ -653,7 +659,7 @@ export default function DesignSystemPage() {
                 <NameLabel label="빈 상태 · 기본" token="pattern-empty-default" />
                 <div className="rounded-xl border border-coolgray-200 bg-white p-6 text-center space-y-4">
                   <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-coolgray-25 text-coolgray-700">
-                    <IconPlus className="size-6" />
+                    <Plus className="size-6" />
                   </div>
                   <div>
                     <p className="text-lg font-semibold text-coolgray-900">데이터가 없습니다.</p>
@@ -725,7 +731,7 @@ export default function DesignSystemPage() {
                   <NameLabel label="드롭다운 · 기본" token="pattern-dropdown-base" />
                   <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-coolgray-700">
                     드롭다운 버튼
-                    <IconChevronDown className="size-4" />
+                    <CaretDown className="size-4" />
                   </div>
                   <div className="w-48 rounded-xl border border-border bg-white p-2 shadow-sm">
                     {["옵션 1", "옵션 2", "옵션 3"].map((item) => (
@@ -877,7 +883,7 @@ function CopyButton({ value }: { value: string }) {
       className="inline-flex items-center rounded-md p-1.5 text-coolgray-500 transition-colors hover:bg-accent hover:text-accent-foreground"
       aria-label={`${value} 복사`}
     >
-      {copied ? <IconCheck className="size-3.5 text-brand-600" /> : <IconCopy className="size-3.5" />}
+      {copied ? <Check className="size-3.5 text-brand-600" /> : <Copy className="size-3.5" />}
     </button>
   )
 }

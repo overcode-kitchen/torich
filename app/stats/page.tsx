@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { IconLoader2, IconInfoCircle } from '@tabler/icons-react'
+import { CircleNotch, Info } from '@phosphor-icons/react'
 import { formatCurrency } from '@/lib/utils'
 import {
   DropdownMenu,
@@ -139,6 +139,17 @@ export default function StatsPage() {
     }))
   }, [monthlyRates])
 
+  // 차트 바 색상: 라이트/다크 공통으로 coolgray 계열 사용
+  const chartBarColor = useMemo(() => {
+    if (typeof window === 'undefined') {
+      // 서버 사이드 렌더링 시에는 대략적인 coolgray 색상으로 fallback
+      return '#9c9ea6'
+    }
+    const root = getComputedStyle(document.documentElement)
+    const fromToken = root.getPropertyValue('--foreground-soft').trim()
+    return fromToken || '#9c9ea6'
+  }, [])
+
   const periodLabel =
     periodPreset === '1'
       ? '이번 달'
@@ -148,8 +159,8 @@ export default function StatsPage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-coolgray-25 flex items-center justify-center">
-        <IconLoader2 className="w-8 h-8 animate-spin text-brand-600" />
+      <main className="min-h-screen bg-surface flex items-center justify-center">
+        <CircleNotch className="w-8 h-8 animate-spin text-muted-foreground" />
       </main>
     )
   }
@@ -160,19 +171,19 @@ export default function StatsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-coolgray-25">
+    <main className="min-h-screen bg-surface">
       <div className="max-w-md mx-auto px-4 py-6 pb-24">
-        <h1 className="text-xl font-bold text-coolgray-900 mb-6">통계</h1>
+        <h1 className="text-xl font-bold text-foreground mb-6">통계</h1>
 
         {/* 예상 자산 */}
         {records.length > 0 && (
-          <section className="bg-white rounded-2xl p-5 mb-4 relative">
+          <section className="bg-card rounded-2xl p-5 mb-4 relative">
             <div className="flex items-center gap-3 mb-3">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
-                    className="focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-coolgray-200 border-coolgray-200 hover:border-coolgray-300"
+                    className="focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-border border-border hover:border-surface-strong-hover"
                   >
                     {selectedYear}년 뒤
                   </Button>
@@ -185,9 +196,9 @@ export default function StatsPage() {
                   <DropdownMenuItem onClick={() => setSelectedYear(30)}>30년 뒤</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <h2 className="text-sm font-semibold text-coolgray-600">예상 자산</h2>
+              <h2 className="text-sm font-semibold text-foreground-muted">예상 자산</h2>
             </div>
-            <p className="text-2xl font-extrabold tracking-tight text-coolgray-900 mb-3">
+            <p className="text-2xl font-extrabold tracking-tight text-foreground mb-3">
               {formatCurrency(totalExpectedAsset)}
             </p>
             {hasMaturedInvestments && (
@@ -195,15 +206,15 @@ export default function StatsPage() {
                 onClick={() => setShowCashHoldSheet(true)}
                 className="flex items-center gap-1.5 w-full text-left group mb-3"
               >
-                <IconInfoCircle className="w-4 h-4 text-coolgray-400 flex-shrink-0 group-hover:text-coolgray-500 transition-colors" />
-                <span className="text-xs text-coolgray-400 leading-relaxed group-hover:text-coolgray-500 transition-colors">
+                <Info className="w-4 h-4 text-foreground-subtle flex-shrink-0 group-hover:text-muted-foreground transition-colors" />
+                <span className="text-xs text-foreground-subtle leading-relaxed group-hover:text-muted-foreground transition-colors">
                   만기가 지난 상품은 현금으로 보관한다고 가정했어요.
                 </span>
               </button>
             )}
             <button
               onClick={() => setShowContributionSheet(true)}
-              className="inline-flex items-center rounded-full border border-brand-600 bg-brand-50 text-brand-700 font-semibold text-sm px-3 py-1.5 hover:bg-brand-100 transition-colors"
+              className="inline-flex items-center rounded-full border border-border bg-muted text-foreground-soft font-semibold text-sm px-3 py-1.5 hover:bg-muted/80 transition-colors"
             >
               월 {formatCurrency(totalMonthlyPayment)}씩 투자 중
             </button>
@@ -212,13 +223,13 @@ export default function StatsPage() {
 
         {/* 예상 수익 차트 */}
         {records.length > 0 && (
-          <section className="bg-white rounded-2xl p-5 mb-4">
+          <section className="bg-card rounded-2xl p-5 mb-4">
             <div className="flex items-center gap-3 mb-3">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
-                    className="focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-coolgray-200 border-coolgray-200 hover:border-coolgray-300"
+                    className="focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-border border-border hover:border-surface-strong-hover"
                   >
                     {selectedYear}년 뒤
                   </Button>
@@ -233,34 +244,34 @@ export default function StatsPage() {
                   <DropdownMenuItem onClick={() => setSelectedYear(30)}>30년 뒤</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <h2 className="text-sm font-semibold text-coolgray-600">예상 수익 차트</h2>
+              <h2 className="text-sm font-semibold text-foreground-muted">예상 수익 차트</h2>
             </div>
             <AssetGrowthChart investments={records} selectedYear={selectedYear} />
           </section>
         )}
 
         {/* 이번 달 현황 */}
-        <section className="bg-white rounded-2xl p-5 mb-4">
-          <h2 className="text-sm font-semibold text-coolgray-600 mb-3">이번 달 납입 현황</h2>
-          <p className="text-lg font-bold text-coolgray-900 mb-2">
+        <section className="bg-card rounded-2xl p-5 mb-4">
+          <h2 className="text-sm font-semibold text-foreground-muted mb-3">이번 달 납입 현황</h2>
+          <p className="text-lg font-bold text-foreground mb-2">
             {thisMonth.total}건 중 {thisMonth.completed}건 완료
           </p>
-          <div className="h-2 bg-coolgray-100 rounded-full overflow-hidden">
+          <div className="h-2 bg-secondary rounded-full overflow-hidden">
             <div
-              className="h-full bg-brand-500 rounded-full transition-all duration-500"
+              className="h-full bg-foreground-soft rounded-full transition-all duration-500"
               style={{ width: thisMonth.total > 0 ? `${(thisMonth.completed / thisMonth.total) * 100}%` : '0%' }}
             />
           </div>
         </section>
 
         {/* 기간별 완료율 */}
-        <section className="bg-white rounded-2xl p-5 mb-4">
+        <section className="bg-card rounded-2xl p-5 mb-4">
           <div className="flex items-center gap-3 mb-3 flex-wrap">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-coolgray-200 border-coolgray-200 hover:border-coolgray-300"
+                  className="focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-border border-border hover:border-surface-strong-hover"
                 >
                   {periodLabel}
                 </Button>
@@ -281,7 +292,7 @@ export default function StatsPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <h2 className="text-sm font-semibold text-coolgray-600">완료율</h2>
+            <h2 className="text-sm font-semibold text-foreground-muted">완료율</h2>
           </div>
           {periodPreset === 'custom' && (
             <div className="mb-3">
@@ -293,7 +304,7 @@ export default function StatsPage() {
               />
             </div>
           )}
-          <p className="text-2xl font-bold text-brand-600 mb-4">{periodCompletionRate}%</p>
+          <p className="text-2xl font-bold text-foreground mb-4">{periodCompletionRate}%</p>
           <div className="h-32">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -301,13 +312,13 @@ export default function StatsPage() {
                 <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} width={28} />
                 <Bar dataKey="rate" radius={[4, 4, 0, 0]}>
                   {chartData.map((_, i) => (
-                    <Cell key={i} fill="#02c463" fillOpacity={0.7 + (i / chartData.length) * 0.3} />
+                    <Cell key={i} fill={chartBarColor} fillOpacity={0.7 + (i / chartData.length) * 0.3} />
                   ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <p className="text-xs text-coolgray-500 mt-1">{periodLabel} 월별 완료율</p>
+          <p className="text-xs text-muted-foreground mt-1">{periodLabel} 월별 완료율</p>
         </section>
 
       </div>

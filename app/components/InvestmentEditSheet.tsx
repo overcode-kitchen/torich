@@ -38,7 +38,7 @@ export default function InvestmentEditSheet({
           key={`${s.label}-${s.rate}`}
           type="button"
           onClick={() => onSelect(s.rate)}
-          className="rounded-full bg-coolgray-50 text-xs text-coolgray-600 px-2 py-1 active:bg-coolgray-100 whitespace-nowrap transition-colors"
+          className="rounded-full bg-surface-hover text-xs text-foreground-muted px-2 py-1 active:bg-secondary whitespace-nowrap transition-colors"
           aria-label={`${s.label} 적용 (${formatRate(s.rate)}%)`}
         >
           {s.label.replace('{rate}', `${formatRate(s.rate)}%`)}

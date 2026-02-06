@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { IconLoader2, IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
+import { CircleNotch, CaretLeft, CaretRight } from '@phosphor-icons/react'
 import { formatCurrency } from '@/lib/utils'
 import { Investment, getStartDate } from '@/app/types/investment'
 import { isCompleted } from '@/app/utils/date'
@@ -165,8 +165,8 @@ export default function CalendarPage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-coolgray-25 flex items-center justify-center">
-        <IconLoader2 className="w-8 h-8 animate-spin text-brand-600" />
+      <main className="min-h-screen bg-surface flex items-center justify-center">
+        <CircleNotch className="w-8 h-8 animate-spin text-brand-600" />
       </main>
     )
   }
@@ -178,12 +178,12 @@ export default function CalendarPage() {
 
   return (
     <main
-      className="min-h-screen bg-coolgray-25"
+      className="min-h-screen bg-surface"
       onClick={() => setSelectedDate(null)}
       role="presentation"
     >
       <div className="max-w-md mx-auto px-4 py-6 pb-24">
-        <h1 className="text-xl font-bold text-coolgray-900 mb-4">캘린더</h1>
+        <h1 className="text-xl font-bold text-foreground mb-4">캘린더</h1>
 
         {/* 월 네비게이션 */}
         <div className="flex items-center justify-between mb-4">
@@ -193,11 +193,11 @@ export default function CalendarPage() {
               setCurrentMonth((m) => subMonths(m, 1))
               setSelectedDate(null)
             }}
-            className="p-2 text-coolgray-600 hover:text-coolgray-900"
+            className="p-2 text-foreground-muted hover:text-foreground"
           >
-            <IconChevronLeft className="w-6 h-6" />
+            <CaretLeft className="w-6 h-6" />
           </button>
-          <span className="text-lg font-semibold text-coolgray-900">
+          <span className="text-lg font-semibold text-foreground">
             {format(currentMonth, 'yyyy년 M월', { locale: ko })}
           </span>
           <button
@@ -206,20 +206,20 @@ export default function CalendarPage() {
               setCurrentMonth((m) => addMonths(m, 1))
               setSelectedDate(null)
             }}
-            className="p-2 text-coolgray-600 hover:text-coolgray-900"
+            className="p-2 text-foreground-muted hover:text-foreground"
           >
-            <IconChevronRight className="w-6 h-6" />
+            <CaretRight className="w-6 h-6" />
           </button>
         </div>
 
         {/* 캘린더 그리드 */}
         <div
-          className="bg-white rounded-2xl p-4 mb-4"
+          className="bg-card rounded-2xl p-4 mb-4"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="grid grid-cols-7 gap-1 mb-2">
             {['일', '월', '화', '수', '목', '금', '토'].map((w) => (
-              <div key={w} className="text-center text-xs font-medium text-coolgray-500 py-1">
+              <div key={w} className="text-center text-xs font-medium text-muted-foreground py-1">
                 {w}
               </div>
             ))}
@@ -247,14 +247,14 @@ export default function CalendarPage() {
                   type="button"
                   onClick={() => setSelectedDate(new Date(year, month - 1, day))}
                   className={`aspect-square rounded-lg flex flex-col items-center justify-center text-sm transition-colors ${
-                    isSelected ? 'bg-brand-100 text-brand-700 ring-2 ring-brand-500' : 'hover:bg-coolgray-50'
+                    isSelected ? 'bg-[var(--brand-accent-bg)] text-[var(--brand-accent-text)] ring-2 ring-brand-500' : 'hover:bg-surface-hover'
                   }`}
                 >
                   <span className="font-medium">{day}</span>
                   {status && (
                     <span
                       className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
-                        status === 'completed' ? 'bg-green-500' : status === 'missed' ? 'bg-red-500' : 'bg-coolgray-300'
+                        status === 'completed' ? 'bg-green-500' : status === 'missed' ? 'bg-red-500' : 'bg-surface-strong-hover'
                       }`}
                     />
                   )}
@@ -263,18 +263,18 @@ export default function CalendarPage() {
             })}
           </div>
           {/* 색상 범례 */}
-          <div className="flex items-center justify-center gap-4 mt-3 pt-3 border-t border-coolgray-100">
+          <div className="flex items-center justify-center gap-4 mt-3 pt-3 border-t border-border-subtle">
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-green-500" />
-              <span className="text-xs text-coolgray-600">완료됨</span>
+              <span className="text-xs text-foreground-muted">완료됨</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-red-500" />
-              <span className="text-xs text-coolgray-600">미완료</span>
+              <span className="text-xs text-foreground-muted">미완료</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-coolgray-300" />
-              <span className="text-xs text-coolgray-600">예정</span>
+              <span className="w-2 h-2 rounded-full bg-surface-strong-hover" />
+              <span className="text-xs text-foreground-muted">예정</span>
             </div>
           </div>
         </div>
@@ -282,14 +282,14 @@ export default function CalendarPage() {
         {/* 선택된 날짜의 투자 목록 */}
         {selectedDate && (
           <div
-            className="bg-white rounded-2xl p-4"
+            className="bg-card rounded-2xl p-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-sm font-semibold text-coolgray-700 mb-3">
+            <h3 className="text-sm font-semibold text-foreground-soft mb-3">
               {format(selectedDate, 'M월 d일', { locale: ko })} 예정 투자
             </h3>
             {selectedEvents.length === 0 ? (
-              <p className="text-sm text-coolgray-500">해당 날짜에 예정된 투자가 없어요</p>
+              <p className="text-sm text-muted-foreground">해당 날짜에 예정된 투자가 없어요</p>
             ) : (
               <div className="space-y-2">
                 {selectedEvents.map((e) => {
@@ -297,11 +297,11 @@ export default function CalendarPage() {
                   return (
                     <div
                       key={`${e.investmentId}-${e.day}`}
-                      className="flex items-center justify-between py-2 border-b border-coolgray-100 last:border-0"
+                      className="flex items-center justify-between py-2 border-b border-border-subtle last:border-0"
                     >
                       <div>
-                        <p className="font-medium text-coolgray-900">{e.title}</p>
-                        <p className="text-sm text-coolgray-500">{formatCurrency(e.monthlyAmount)}</p>
+                        <p className="font-medium text-foreground">{e.title}</p>
+                        <p className="text-sm text-muted-foreground">{formatCurrency(e.monthlyAmount)}</p>
                       </div>
                       {done ? (
                         <span className="text-green-600 text-sm font-medium">✓ 완료됨</span>
@@ -309,7 +309,7 @@ export default function CalendarPage() {
                         <button
                           type="button"
                           onClick={() => handleComplete(e)}
-                          className="px-3 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-medium hover:bg-brand-700"
+                          className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90"
                           aria-label="납입 완료 체크"
                         >
                           완료하기
@@ -327,7 +327,7 @@ export default function CalendarPage() {
       {/* 되돌리기 토스트 */}
       {pendingUndo && (
         <div
-          className="fixed bottom-24 left-4 right-4 z-50 flex items-center justify-between gap-3 rounded-xl bg-coolgray-900 text-white px-4 py-3 shadow-lg"
+          className="fixed bottom-24 left-4 right-4 z-50 flex items-center justify-between gap-3 rounded-xl bg-surface-dark text-white px-4 py-3 shadow-lg"
           role="status"
         >
           <span className="text-sm font-medium">완료됨</span>
