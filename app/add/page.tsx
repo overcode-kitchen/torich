@@ -22,6 +22,12 @@ import { useRateEditor } from '@/app/hooks/useRateEditor'
 import { useAddInvestmentForm } from '@/app/hooks/useAddInvestmentForm'
 import ManualInputModal from '@/app/components/ManualInputModal'
 import RateHelpModal from '@/app/components/RateHelpModal'
+import StockSearchInput from '@/app/components/StockSearchInput'
+import RateDisplay from '@/app/components/RateDisplay'
+import InvestmentPreviewCard from '@/app/components/InvestmentPreviewCard'
+import AmountInput from '@/app/components/AmountInput'
+import PeriodInput from '@/app/components/PeriodInput'
+import { calculateFinalAmount } from '@/app/utils/finance'
 // import { sendGAEvent } from '@next/third-parties/google'
 
 export default function AddInvestmentPage() {
@@ -83,28 +89,6 @@ export default function AddInvestmentPage() {
   const [isDaysPickerOpen, setIsDaysPickerOpen] = useState<boolean>(false)
   const [isRateHelpModalOpen, setIsRateHelpModalOpen] = useState<boolean>(false)
 
-  // 복리 계산 함수 (동적 수익률 적용)
-  const calculateFinalAmount = (monthlyAmount: number, periodYears: number, rate: number): number => {
-    const monthlyRate = rate / 12 / 100 // 월 이율
-    const totalMonths = periodYears * 12 // 총 개월 수
-
-    // 기납입액 기준 월복리 계산: 월납입금 * ((1 + r)^n - 1) / r * (1 + r)
-    const finalAmount = monthlyAmount * ((Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate) * (1 + monthlyRate)
-    
-    // 디버깅 로그
-    console.log('=== [계산 디버그] ===')
-    console.log(`월 투자금: ${monthlyAmount.toLocaleString()}원 (${monthlyAmount / 10000}만원)`)
-    console.log(`투자 기간: ${periodYears}년 (${totalMonths}개월)`)
-    console.log(`연 수익률: ${rate}%`)
-    console.log(`월 이율: ${(monthlyRate * 100).toFixed(6)}%`)
-    console.log(`총 원금: ${(monthlyAmount * totalMonths).toLocaleString()}원`)
-    console.log(`만기 금액: ${Math.round(finalAmount).toLocaleString()}원`)
-    console.log(`예상 수익: ${Math.round(finalAmount - monthlyAmount * totalMonths).toLocaleString()}원`)
-    console.log(`수익률(원금대비): ${((finalAmount / (monthlyAmount * totalMonths) - 1) * 100).toFixed(2)}%`)
-    console.log('====================')
-    
-    return Math.round(finalAmount)
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -146,22 +130,6 @@ export default function AddInvestmentPage() {
 
       // symbol 결정: 검색을 통해 선택한 경우 selectedStock.symbol, 직접 입력은 null
       const stockSymbol = !isManualInput && selectedStock?.symbol ? selectedStock.symbol : null
-
-      // 저장 전 디버깅 로그
-      console.log('=== [저장 데이터 디버그] ===')
-      console.log(`종목명: ${stockName.trim()}`)
-      console.log(`심볼: ${stockSymbol || '없음 (직접입력)'}`)
-      console.log(`월 투자금: ${monthlyAmountInWon.toLocaleString()}원`)
-      console.log(`투자 기간: ${periodYearsNum}년`)
-      console.log(`연 수익률: ${annualRate}%`)
-      console.log(`만기 금액: ${finalAmount.toLocaleString()}원`)
-      console.log(`직접 입력 여부: ${isCustomRate}`)
-      console.log(`- isManualInput: ${isManualInput}`)
-      console.log(`- originalSystemRate: ${originalSystemRate}`)
-      console.log(`- annualRate !== originalSystemRate: ${originalSystemRate !== null && annualRate !== originalSystemRate}`)
-      console.log(`투자 시작일: ${startDate.toISOString().split('T')[0]}`)
-      console.log(`매월 투자일: ${investmentDays.length > 0 ? investmentDays.join(', ') + '일' : '미설정'}`)
-      console.log('===========================')
 
       // Supabase에 데이터 저장 (만원 단위를 원 단위로 변환하여 저장)
       const { error } = await supabase
@@ -263,318 +231,72 @@ export default function AddInvestmentPage() {
         <form onSubmit={handleSubmit} className="space-y-4 mb-8">
           {/* 종목명 입력 (검색 기능 포함) */}
           <div>
-            <div className="relative stock-search-container">
-            <input
-              type="text"
-              value={stockName}
-              onChange={(e) => {
+            <StockSearchInput
+              stockName={stockName}
+              onStockNameChange={(value) => {
                 setIsManualInput(false) // 사용자가 다시 타이핑하면 검색 모드로 전환
-                setStockName(e.target.value)
+                setStockName(value)
                 setSelectedStock(null) // 입력 변경 시 선택 초기화
                 setAnnualRate(10) // 기본값으로 리셋
                 setOriginalSystemRate(null) // 원본 수익률 리셋
                 cancelEdit() // 수정 모드 종료
               }}
-              placeholder={market === 'KR' ? '삼성전자, TIGER...' : 'S&P 500, AAPL...'}
-              className="w-full bg-card rounded-2xl py-3.5 pl-4 pr-12 text-foreground placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-ring"
-              autoComplete="off"
+              market={market}
+              isSearching={isSearching}
+              searchResults={searchResults}
+              showDropdown={showDropdown}
+              onSelectStock={(stock) => {
+                setStockName(stock.name)
+                void handleSelectStock(stock)
+              }}
+              onManualInputClick={() => {
+                setIsManualModalOpen(true)
+                setManualStockName(stockName)
+                setShowDropdown(false)
+              }}
+              onDropdownClose={() => setShowDropdown(false)}
             />
             
-            {/* 로딩 스피너 */}
-            {isSearching && (
-              <div className="absolute right-5 top-1/2 -translate-y-1/2">
-                <CircleNotch className="w-5 h-5 animate-spin text-muted-foreground" />
-              </div>
-            )}
-
-            {/* 드롭다운 검색 결과 */}
-            {showDropdown && searchResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-card rounded-2xl shadow-lg border border-border-subtle overflow-hidden z-10 max-h-80 overflow-y-auto">
-                {searchResults.map((stock) => (
-                  <button
-                    key={stock.symbol}
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setStockName(stock.name)
-                      void handleSelectStock(stock)
-                    }}
-                    className="w-full px-5 py-4 text-left hover:bg-surface-hover transition-colors border-b border-border-subtle last:border-b-0"
-                  >
-                    <div className="font-medium text-foreground">
-                      {stock.name}
-                    </div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      {stock.symbol}
-                      {stock.group && ` · ${stock.group}`}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* 검색 결과 없음 - 직접 입력 안내 */}
-            {showDropdown && searchResults.length === 0 && !isSearching && stockName.trim().length >= 2 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-card rounded-2xl shadow-lg border border-border-subtle overflow-hidden z-10">
-                <div className="px-5 py-4 text-center">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    찾으시는 종목이 없나요?
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsManualModalOpen(true)
-                      setManualStockName(stockName)
-                      setShowDropdown(false)
-                    }}
-                    className="w-full bg-primary text-primary-foreground font-medium py-2 px-4 rounded-xl hover:bg-primary/90 transition-colors"
-                  >
-                    직접 입력하기
-                  </button>
-                </div>
-              </div>
-            )}
-            </div>
-            
-            {/* 선택된 종목 안내 문구 - 종목 선택 필드 바로 아래 */}
-            {(selectedStock || isRateLoading) && (
-              <div className="mt-2">
-                {isRateLoading ? (
-                  // 로딩 중 - 스피너 + 안내 문구
-                  <div className="flex items-center gap-2">
-                    <CircleNotch className="w-4 h-4 animate-spin text-brand-600" />
-                    <span className="text-sm text-muted-foreground">수익률을 분석하고 있어요...</span>
-                  </div>
-                ) : rateFetchFailed ? (
-                  // API 실패 - 경고 문구 + 수정 버튼
-                  <div className="text-sm font-medium flex items-center gap-1 flex-wrap">
-                    <span className="text-amber-600">⚠️</span>
-                    <span className="text-amber-600">
-                      데이터를 불러오지 못해 기본 수익률({annualRate}%)로 설정했어요.
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => startEditing(annualRate)}
-                      className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full hover:bg-amber-200 transition-colors ml-1"
-                    >
-                      수정
-                    </button>
-                  </div>
-                ) : isRateEditing ? (
-                  // 수정 모드
-                  <div className="flex items-center gap-2 bg-surface-hover rounded-xl p-3">
-                    <span className="text-sm text-foreground-muted">연 수익률</span>
-                    <input
-                      type="text"
-                      value={editingRate}
-                      onChange={(e) => handleRateChange(e.target.value)}
-                      className="w-16 text-center bg-card border border-border rounded-lg px-2 py-1 text-foreground font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
-
-                      placeholder="10"
-                      autoFocus
-                    />
-                    <span className="text-sm text-foreground-muted">%</span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        confirmEdit((newRate: number) => {
-                          setAnnualRate(newRate)
-                          setRateFetchFailed(false)
-                        })
-                      }
-                      className="px-3 py-1 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
-                    >
-                      확인
-                    </button>
-                    <button
-                      type="button"
-                      onClick={cancelEdit}
-                      className="px-3 py-1 bg-surface-strong text-foreground-soft text-sm font-medium rounded-lg hover:bg-surface-strong-hover transition-colors"
-                    >
-                      취소
-                    </button>
-                  </div>
-                ) : (
-                  // 표시 모드
-                  <div className="text-sm font-medium flex items-center gap-1 flex-wrap">
-                    {originalSystemRate !== null && annualRate !== originalSystemRate ? (
-                      // 사용자가 수정한 경우
-                      <>
-                        <span className="text-purple-600">✏️</span>
-                        <span className="text-purple-600">
-                          수익률 {annualRate}%가 적용됩니다
-                        </span>
-                        <span className="text-xs text-foreground-subtle ml-1">
-                          (시스템: {originalSystemRate}%)
-                        </span>
-                      </>
-                    ) : (
-                      // 시스템 수익률 그대로
-                      <>
-                        <span className="text-brand-600">📊</span>
-                        <span className="text-brand-600">
-                          지난 10년 평균 수익률 {annualRate}%가 적용되었어요!
-                        </span>
-                      </>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setIsRateHelpModalOpen(true)}
-                      className="p-1 flex items-center justify-center bg-transparent text-foreground-subtle hover:text-foreground-muted hover:bg-secondary rounded transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500"
-                      aria-label="수익률 계산 방식 안내"
-                    >
-                      <Info className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => startEditing(annualRate)}
-                      className="px-2 py-0.5 bg-secondary text-foreground-muted text-xs font-medium rounded-full hover:bg-surface-strong transition-colors ml-1"
-                    >
-                      수정
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {/* 직접 입력한 종목 안내 문구 - 종목 선택 필드 바로 아래 */}
-            {isManualInput && stockName && (
-              <div className="mt-2">
-                {isRateEditing ? (
-                  // 수정 모드
-                  <div className="flex items-center gap-2 bg-surface-hover rounded-xl p-3">
-                    <span className="text-sm text-foreground-muted">연 수익률</span>
-                    <input
-                      type="text"
-                      value={editingRate}
-                      onChange={(e) => handleRateChange(e.target.value)}
-                      className="w-16 text-center bg-card border border-border rounded-lg px-2 py-1 text-foreground font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
-
-                      placeholder="10"
-                      autoFocus
-                    />
-                    <span className="text-sm text-foreground-muted">%</span>
-                    <button
-                      type="button"
-                      onClick={() => confirmEdit((newRate: number) => setAnnualRate(newRate))}
-                      className="px-3 py-1 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
-                    >
-                      확인
-                    </button>
-                    <button
-                      type="button"
-                      onClick={cancelEdit}
-                      className="px-3 py-1 bg-surface-strong text-foreground-soft text-sm font-medium rounded-lg hover:bg-surface-strong-hover transition-colors"
-                    >
-                      취소
-                    </button>
-                  </div>
-                ) : (
-                  // 표시 모드
-                  <div className="text-sm text-purple-600 font-medium flex items-center gap-1">
-                    <span>✏️</span>
-                    <span>직접 입력한 수익률 {annualRate}%가 적용됩니다</span>
-                    <button
-                      type="button"
-                      onClick={() => startEditing(annualRate)}
-                      className="px-2 py-0.5 bg-secondary text-foreground-muted text-xs font-medium rounded-full hover:bg-surface-strong transition-colors ml-1"
-                    >
-                      수정
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+            <RateDisplay
+              isRateLoading={isRateLoading}
+              rateFetchFailed={rateFetchFailed}
+              isRateEditing={isRateEditing}
+              isManualInput={isManualInput}
+              stockName={stockName}
+              selectedStock={selectedStock}
+              annualRate={annualRate}
+              originalSystemRate={originalSystemRate}
+              editingRate={editingRate}
+              onStartEditing={() => startEditing(annualRate)}
+              onConfirmEdit={() => {
+                if (originalSystemRate !== null) {
+                  confirmEdit((newRate: number) => {
+                    setAnnualRate(newRate)
+                    setRateFetchFailed(false)
+                  })
+                } else {
+                  confirmEdit((newRate: number) => setAnnualRate(newRate))
+                }
+              }}
+              onCancelEdit={cancelEdit}
+              onRateChange={handleRateChange}
+              onRateHelpClick={() => setIsRateHelpModalOpen(true)}
+            />
           </div>
 
           {/* 월 투자액 입력 (만원 단위) */}
-          <div>
-            <div className="relative">
-              <input
-                type="text"
-                value={monthlyAmount}
-                onChange={handleAmountChange}
-                placeholder="월 100 (만원 단위)"
-                className="w-full bg-card rounded-2xl py-3.5 pl-4 pr-16 text-foreground placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-              <span className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
-                만원
-              </span>
-            </div>
-            {/* 빠른 조절 버튼 */}
-            <div className="flex flex-wrap gap-2 justify-start mt-2">
-              <button
-                type="button"
-                onClick={() => adjustAmount(10)}
-                className="rounded-full bg-surface-strong hover:bg-surface-strong-hover text-foreground-soft font-semibold text-sm px-4 py-2 transition-colors"
-              >
-                +10
-              </button>
-              <button
-                type="button"
-                onClick={() => adjustAmount(-10)}
-                className="rounded-full bg-surface-strong hover:bg-surface-strong-hover text-foreground-soft font-semibold text-sm px-4 py-2 transition-colors"
-              >
-                -10
-              </button>
-              <button
-                type="button"
-                onClick={() => adjustAmount(1)}
-                className="rounded-full bg-surface-strong hover:bg-surface-strong-hover text-foreground-soft font-semibold text-sm px-4 py-2 transition-colors"
-              >
-                +1
-              </button>
-              <button
-                type="button"
-                onClick={() => adjustAmount(-1)}
-                className="rounded-full bg-surface-strong hover:bg-surface-strong-hover text-foreground-soft font-semibold text-sm px-4 py-2 transition-colors"
-              >
-                -1
-              </button>
-            </div>
-          </div>
+          <AmountInput
+            value={monthlyAmount}
+            onChange={handleAmountChange}
+            onAdjust={adjustAmount}
+          />
 
           {/* 투자 기간 입력 */}
-          <div>
-            <input
-              type="text"
-              value={period}
-              onChange={handlePeriodChange}
-              placeholder="3년간"
-              className="w-full bg-card rounded-2xl py-3.5 px-4 text-foreground placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-            {/* 빠른 조절 버튼 */}
-            <div className="flex flex-wrap gap-2 justify-start mt-2">
-              <button
-                type="button"
-                onClick={() => adjustPeriod(5)}
-                className="rounded-full bg-surface-strong hover:bg-surface-strong-hover text-foreground-soft font-semibold text-sm px-4 py-2 transition-colors"
-              >
-                +5
-              </button>
-              <button
-                type="button"
-                onClick={() => adjustPeriod(-5)}
-                className="rounded-full bg-surface-strong hover:bg-surface-strong-hover text-foreground-soft font-semibold text-sm px-4 py-2 transition-colors"
-              >
-                -5
-              </button>
-              <button
-                type="button"
-                onClick={() => adjustPeriod(1)}
-                className="rounded-full bg-surface-strong hover:bg-surface-strong-hover text-foreground-soft font-semibold text-sm px-4 py-2 transition-colors"
-              >
-                +1
-              </button>
-              <button
-                type="button"
-                onClick={() => adjustPeriod(-1)}
-                className="rounded-full bg-surface-strong hover:bg-surface-strong-hover text-foreground-soft font-semibold text-sm px-4 py-2 transition-colors"
-              >
-                -1
-              </button>
-            </div>
-          </div>
+          <PeriodInput
+            value={period}
+            onChange={handlePeriodChange}
+            onAdjust={adjustPeriod}
+          />
 
           {/* 투자 시작일 입력 */}
           <div className="space-y-2">
@@ -656,63 +378,13 @@ export default function AddInvestmentPage() {
           </div>
         </form>
 
-        {/* 미리보기 카드 */}
-        {stockName.trim() && monthlyAmount && period && (
-          <div className="mb-4 bg-[var(--brand-accent-bg)] border-2 border-dashed border-[var(--brand-accent-border)] rounded-2xl p-5 animate-in fade-in-0 slide-in-from-bottom-2">
-            <div className="flex items-center gap-2 mb-4">
-              {isRateLoading ? (
-                <CircleNotch className="w-5 h-5 animate-spin text-muted-foreground" />
-              ) : (
-                <span className="text-lg">🔍</span>
-              )}
-              <h3 className="text-sm font-bold text-foreground">
-                {isRateLoading ? '분석 중...' : '예상 결과'}
-              </h3>
-            </div>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-foreground-muted">만기 금액</span>
-                {isRateLoading ? (
-                  <CircleNotch className="w-5 h-5 animate-spin text-muted-foreground" />
-                ) : (
-                  <span className="text-lg font-bold text-foreground">
-                    {formatCurrency(
-                      calculateFinalAmount(
-                        parseInt(monthlyAmount.replace(/,/g, '')) * 10000,
-                        parseInt(period),
-                        annualRate
-                      )
-                    )}
-                  </span>
-                )}
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-foreground-muted">예상 수익</span>
-                {isRateLoading ? (
-                  <CircleNotch className="w-5 h-5 animate-spin text-muted-foreground" />
-                ) : (
-                  <span className="text-lg font-bold text-brand-600">
-                    + {formatCurrency(
-                      calculateFinalAmount(
-                        parseInt(monthlyAmount.replace(/,/g, '')) * 10000,
-                        parseInt(period),
-                        annualRate
-                      ) - (parseInt(monthlyAmount.replace(/,/g, '')) * 10000 * parseInt(period) * 12)
-                    )}
-                  </span>
-                )}
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-foreground-muted">
-                  총 투자금 ({parseInt(monthlyAmount.replace(/,/g, ''))}만원 × {parseInt(period) * 12}개월)
-                </span>
-                <span className="text-base font-semibold text-foreground-soft">
-                  {formatCurrency(parseInt(monthlyAmount.replace(/,/g, '')) * 10000 * parseInt(period) * 12)}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
+        <InvestmentPreviewCard
+          stockName={stockName}
+          monthlyAmount={monthlyAmount}
+          period={period}
+          annualRate={annualRate}
+          isRateLoading={isRateLoading}
+        />
 
         {/* 저장하기 버튼 */}
         <button

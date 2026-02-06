@@ -184,3 +184,17 @@ export function calculateSimulatedValue(
   // 만기 시점의 총액이 그대로 T년 시점의 자산
   return maturityValue
 }
+
+// 복리 계산 함수 (동적 수익률 적용)
+export function calculateFinalAmount(
+  monthlyAmount: number, 
+  periodYears: number, 
+  rate: number
+): number {
+  const monthlyRate = rate / 12 / 100
+  const totalMonths = periodYears * 12
+  const finalAmount = monthlyAmount * 
+    ((Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate) * 
+    (1 + monthlyRate)
+  return Math.round(finalAmount)
+}
