@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { IconLoader2 } from '@tabler/icons-react'
+import { CircleNotch, Sun, Moon, Devices } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
+import { useTheme, type Theme } from '@/app/components/ThemeProvider'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -14,6 +16,7 @@ export default function SettingsPage() {
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [notificationOn, setNotificationOn] = useState(true)
   const [isBrandStoryOpen, setIsBrandStoryOpen] = useState(false)
+  const { theme, setTheme } = useTheme()
 
   const supabase = createClient()
 
@@ -69,8 +72,8 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-coolgray-25 flex items-center justify-center">
-        <IconLoader2 className="w-8 h-8 animate-spin text-brand-600" />
+      <main className="min-h-screen bg-surface flex items-center justify-center">
+        <CircleNotch className="w-8 h-8 animate-spin text-muted-foreground" />
       </main>
     )
   }
@@ -80,68 +83,92 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-coolgray-25">
+    <main className="min-h-screen bg-surface">
       <div className="max-w-md mx-auto px-4 py-6 pb-24">
-        <h1 className="text-xl font-bold text-coolgray-900 mb-6">설정</h1>
+        <h1 className="text-xl font-bold text-foreground mb-6">설정</h1>
+
+        {/* 다크모드 */}
+        <section className="bg-card rounded-2xl overflow-hidden mb-4">
+          <h2 className="text-sm font-semibold text-foreground-muted px-4 pt-4 pb-2">표시</h2>
+          <div className="px-4 pb-4">
+            <p className="text-sm text-muted-foreground mb-3">테마</p>
+            <div className="flex gap-2">
+              {(
+                [
+                  { value: 'light' as Theme, label: '라이트', icon: Sun },
+                  { value: 'dark' as Theme, label: '다크', icon: Moon },
+                  { value: 'system' as Theme, label: '시스템', icon: Devices },
+                ] as const
+              ).map(({ value, label, icon: Icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setTheme(value)}
+                  className={`flex-1 flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border-2 transition-colors ${
+                    theme === value
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border-subtle bg-surface hover:bg-surface-hover text-foreground-soft'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" weight={theme === value ? 'fill' : 'regular'} />
+                  <span className="text-xs font-medium">{label}</span>
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              시스템: 기기 설정(라이트/다크)을 따릅니다.
+            </p>
+          </div>
+        </section>
 
         {/* 알림 설정 */}
-        <section className="bg-white rounded-2xl overflow-hidden mb-4">
-          <h2 className="text-sm font-semibold text-coolgray-600 px-4 pt-4 pb-2">알림</h2>
-          <div className="flex items-center justify-between px-4 py-3 border-t border-coolgray-100">
-            <span className="text-coolgray-900 font-medium">전체 알림</span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={notificationOn}
-              onClick={toggleNotification}
-              className={`relative w-11 h-6 rounded-full transition-colors ${
-                notificationOn ? 'bg-brand-500' : 'bg-coolgray-200'
-              }`}
-            >
-              <span
-                className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${
-                  notificationOn ? 'left-7' : 'left-1'
-                }`}
-              />
-            </button>
+        <section className="bg-card rounded-2xl overflow-hidden mb-4">
+          <h2 className="text-sm font-semibold text-foreground-muted px-4 pt-4 pb-2">알림</h2>
+          <div className="flex items-center justify-between px-4 py-3 border-t border-border-subtle">
+            <span className="text-foreground font-medium">전체 알림</span>
+            <Switch
+              checked={notificationOn}
+              onCheckedChange={toggleNotification}
+              aria-label="전체 알림"
+            />
           </div>
-          <p className="text-xs text-coolgray-500 px-4 pb-4">(추후) 알림 시간대, 메시지 톤 설정</p>
+          <p className="text-xs text-muted-foreground px-4 pb-4">(추후) 알림 시간대, 메시지 톤 설정</p>
         </section>
 
         {/* 계정 */}
-        <section className="bg-white rounded-2xl overflow-hidden mb-4">
-          <h2 className="text-sm font-semibold text-coolgray-600 px-4 pt-4 pb-2">계정</h2>
-          <div className="px-4 py-3 border-t border-coolgray-100">
-            <p className="text-sm text-coolgray-500">로그인된 이메일</p>
-            <p className="text-coolgray-900 font-medium mt-0.5">{user.email || '-'}</p>
+        <section className="bg-card rounded-2xl overflow-hidden mb-4">
+          <h2 className="text-sm font-semibold text-foreground-muted px-4 pt-4 pb-2">계정</h2>
+          <div className="px-4 py-3 border-t border-border-subtle">
+            <p className="text-sm text-muted-foreground">로그인된 이메일</p>
+            <p className="text-foreground font-medium mt-0.5">{user.email || '-'}</p>
           </div>
           <button
             type="button"
             onClick={handleLogout}
             disabled={isLoggingOut}
-            className="w-full px-4 py-3 text-left text-red-600 font-medium hover:bg-red-50 transition-colors border-t border-coolgray-100"
+            className="w-full px-4 py-3 text-left text-destructive font-medium hover:bg-destructive/10 dark:hover:bg-destructive/20 transition-colors border-t border-border-subtle"
           >
             {isLoggingOut ? '로그아웃 중...' : '로그아웃'}
           </button>
         </section>
 
         {/* 브랜드 스토리 */}
-        <section className="bg-white rounded-2xl overflow-hidden mb-4">
-          <h2 className="text-sm font-semibold text-coolgray-600 px-4 pt-4 pb-2">브랜드 스토리</h2>
+        <section className="bg-card rounded-2xl overflow-hidden mb-4">
+          <h2 className="text-sm font-semibold text-foreground-muted px-4 pt-4 pb-2">브랜드 스토리</h2>
           <button
             type="button"
             onClick={() => setIsBrandStoryOpen(true)}
-            className="w-full flex items-center justify-between px-4 py-3 border-t border-coolgray-100 hover:bg-coolgray-50 transition-colors"
+            className="w-full flex items-center justify-between px-4 py-3 border-t border-border-subtle hover:bg-surface-hover transition-colors"
             aria-haspopup="dialog"
             aria-expanded={isBrandStoryOpen}
           >
             <div className="flex flex-col items-start">
-              <span className="text-coolgray-900 font-medium">토리치가 궁금하다면</span>
-              <span className="text-sm text-coolgray-500 mt-0.5">
+              <span className="text-foreground font-medium">토리치가 궁금하다면</span>
+              <span className="text-sm text-muted-foreground mt-0.5">
                 이름에 담긴 의미와 우리가 추구하는 방향을 소개해요.
               </span>
             </div>
-            <span className="ml-3 text-coolgray-400 text-lg" aria-hidden="true">
+            <span className="ml-3 text-foreground-subtle text-lg" aria-hidden="true">
               ›
             </span>
           </button>
@@ -157,10 +184,10 @@ export default function SettingsPage() {
             onClick={() => setIsBrandStoryOpen(false)}
           >
             <div
-              className="bg-white rounded-t-3xl max-h-[80vh] max-w-md mx-auto w-full shadow-xl flex flex-col"
+              className="bg-card rounded-t-3xl max-h-[80vh] max-w-md mx-auto w-full shadow-xl flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="mx-auto mt-3 mb-3 h-1 w-10 rounded-full bg-coolgray-200 shrink-0" />
+              <div className="mx-auto mt-3 mb-3 h-1 w-10 rounded-full bg-surface-strong shrink-0" />
               <div className="flex-1 overflow-y-auto scrollbar-thin px-6 pb-4 pt-1 min-h-0">
                 <div className="mb-4">
                   <div className="relative w-full">
@@ -174,10 +201,10 @@ export default function SettingsPage() {
                     />
                   </div>
                 </div>
-                <h2 className="text-lg font-semibold text-coolgray-900 mb-3">
+                <h2 className="text-lg font-semibold text-foreground mb-3">
                   토리치(Torich)는 &quot;(도)토리 + 리치&quot;의 합성어예요.
                 </h2>
-                <div className="space-y-3 text-sm leading-relaxed text-coolgray-700">
+                <div className="space-y-3 text-sm leading-relaxed text-foreground-soft">
                   <p>
                     도토리를 조금씩 모으듯, 작은 투자와 저축이 쌓여 언젠가 &quot;리치&quot;한 삶으로 이어진다는 믿음에서
                     시작된 이름이에요. 한 번에 큰 결심을 요구하기보다는, 오늘 할 수 있는 가장 작고 부드러운 한 걸음을
@@ -189,7 +216,7 @@ export default function SettingsPage() {
                     한눈에 확인할 수 있도록 설계했어요.
                   </p>
                   <div className="pt-1">
-                    <p className="text-coolgray-900 font-medium mb-1">우리가 사용자에게 바라는 것</p>
+                    <p className="text-foreground font-medium mb-1">우리가 사용자에게 바라는 것</p>
                     <ul className="list-disc list-inside space-y-1">
                       <li>단기 수익보다, 내가 원하는 삶의 속도와 방향을 먼저 떠올리기</li>
                       <li>완벽한 투자자가 되기보다, 꾸준한 투자자가 되기</li>
@@ -198,7 +225,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
-              <div className="shrink-0 px-6 pb-6 pt-4 bg-white rounded-b-3xl">
+              <div className="shrink-0 px-6 pb-6 pt-4 bg-card rounded-b-3xl">
                 <Button
                   type="button"
                   onClick={() => setIsBrandStoryOpen(false)}
@@ -213,27 +240,27 @@ export default function SettingsPage() {
         )}
 
         {/* 앱 정보 */}
-        <section className="bg-white rounded-2xl overflow-hidden">
-          <h2 className="text-sm font-semibold text-coolgray-600 px-4 pt-4 pb-2">앱 정보</h2>
-          <div className="px-4 py-3 border-t border-coolgray-100 flex justify-between items-center">
-            <span className="text-coolgray-900">버전</span>
-            <span className="text-coolgray-500 text-sm">1.0.0</span>
+        <section className="bg-card rounded-2xl overflow-hidden">
+          <h2 className="text-sm font-semibold text-foreground-muted px-4 pt-4 pb-2">앱 정보</h2>
+          <div className="px-4 py-3 border-t border-border-subtle flex justify-between items-center">
+            <span className="text-foreground">버전</span>
+            <span className="text-muted-foreground text-sm">1.0.0</span>
           </div>
           <a
             href="mailto:support@torich.app"
-            className="block px-4 py-3 text-coolgray-900 font-medium hover:bg-coolgray-50 border-t border-coolgray-100"
+            className="block px-4 py-3 text-foreground font-medium hover:bg-surface-hover border-t border-border-subtle"
           >
             문의하기
           </a>
           <a
             href="#"
-            className="block px-4 py-3 text-coolgray-600 text-sm hover:bg-coolgray-50 border-t border-coolgray-100"
+            className="block px-4 py-3 text-foreground-muted text-sm hover:bg-surface-hover border-t border-border-subtle"
           >
             이용약관
           </a>
           <a
             href="#"
-            className="block px-4 py-3 text-coolgray-600 text-sm hover:bg-coolgray-50 border-t border-coolgray-100"
+            className="block px-4 py-3 text-foreground-muted text-sm hover:bg-surface-hover border-t border-border-subtle"
           >
             개인정보처리방침
           </a>
