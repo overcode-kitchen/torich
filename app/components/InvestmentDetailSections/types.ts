@@ -36,7 +36,7 @@ export interface InfoSectionProps {
   isCustomRate: boolean
 
   // Ref
-  infoRef: React.RefObject<HTMLElement>
+  infoRef: React.RefObject<HTMLElement | null>
 }
 
 export interface PaymentHistorySectionProps {
@@ -48,5 +48,5 @@ export interface PaymentHistorySectionProps {
   }>
   hasMorePaymentHistory: boolean
   loadMore: () => void
-  historyRef: React.RefObject<HTMLElement>
+  historyRef: React.RefObject<HTMLElement | null>
 }
