@@ -1,25 +1,16 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   ArrowLeft,
   CircleNotch,
-  Info,
-  X,
   CalendarBlank,
   CaretDown,
 } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { createClient } from '@/utils/supabase/client'
-import { formatCurrency } from '@/lib/utils'
 import InvestmentDaysPickerSheet from '@/app/components/InvestmentDaysPickerSheet'
-import { useStockSearch, type SearchResult } from '@/app/hooks/useStockSearch'
-import { useManualInput } from '@/app/hooks/useManualInput'
-import { useRateEditor } from '@/app/hooks/useRateEditor'
-import { useAddInvestmentForm } from '@/app/hooks/useAddInvestmentForm'
 import ManualInputModal from '@/app/components/ManualInputModal'
 import RateHelpModal from '@/app/components/RateHelpModal'
 import StockSearchInput from '@/app/components/StockSearchInput'
@@ -27,155 +18,15 @@ import RateDisplay from '@/app/components/RateDisplay'
 import InvestmentPreviewCard from '@/app/components/InvestmentPreviewCard'
 import AmountInput from '@/app/components/AmountInput'
 import PeriodInput from '@/app/components/PeriodInput'
-import { calculateFinalAmount } from '@/app/utils/finance'
-// import { sendGAEvent } from '@next/third-parties/google'
+import { useAddInvestmentFormIntegrated } from '@/app/hooks/useAddInvestmentFormIntegrated'
+import { useModalState } from '@/app/hooks/useModalState'
 
 export default function AddInvestmentPage() {
   const router = useRouter()
-  const {
-    stockName,
-    setStockName,
-    monthlyAmount,
-    period,
-    startDate,
-    setStartDate,
-    investmentDays,
-    setInvestmentDays,
-    isSubmitting,
-    setIsSubmitting,
-    userId,
-    handleAmountChange,
-    adjustAmount,
-    handlePeriodChange,
-    adjustPeriod,
-  } = useAddInvestmentForm()
-
-  const {
-    isManualModalOpen,
-    setIsManualModalOpen,
-    manualStockName,
-    setManualStockName,
-    manualRate,
-    setManualRate,
-    isManualInput,
-    setIsManualInput,
-    handleManualConfirm,
-    closeAndReset: closeManualModal,
-  } = useManualInput()
-
-  const {
-    isSearching,
-    searchResults,
-    showDropdown,
-    setShowDropdown,
-    selectedStock,
-    setSelectedStock,
-    market,
-    setMarket,
-    annualRate,
-    setAnnualRate,
-    originalSystemRate,
-    setOriginalSystemRate,
-    isRateLoading,
-    rateFetchFailed,
-    setRateFetchFailed,
-    handleSelectStock,
-    resetSearch,
-  } = useStockSearch(stockName, isManualInput)
-
-  const { isRateEditing, editingRate, startEditing, confirmEdit, cancelEdit, handleRateChange } = useRateEditor()
-
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState<boolean>(false)
-  const [isDaysPickerOpen, setIsDaysPickerOpen] = useState<boolean>(false)
-  const [isRateHelpModalOpen, setIsRateHelpModalOpen] = useState<boolean>(false)
+  const form = useAddInvestmentFormIntegrated()
+  const modals = useModalState()
 
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    // 유효성 검사
-    if (!stockName.trim()) {
-      alert('종목명을 입력해주세요.')
-      return
-    }
-    if (!monthlyAmount || parseInt(monthlyAmount) <= 0) {
-      alert('월 투자액을 입력해주세요.')
-      return
-    }
-    if (!period || parseInt(period) <= 0) {
-      alert('투자 기간을 입력해주세요.')
-      return
-    }
-    if (!userId) {
-      alert('로그인이 필요합니다.')
-      router.push('/login')
-      return
-    }
-    if (investmentDays.length === 0) {
-      alert('매월 투자일을 선택해주세요. 알림을 받을 날짜를 선택하면 투자 일정을 쉽게 관리할 수 있어요.')
-      return
-    } 
-    try {
-      setIsSubmitting(true)
-
-      const supabase = createClient()
-      // 콤마 제거 후 숫자로 변환하고 만원 단위로 처리 (원 단위로 변환)
-      const monthlyAmountInWon = parseInt(monthlyAmount.replace(/,/g, '')) * 10000
-      const periodYearsNum = parseInt(period)
-      // 검색으로 선택한 수익률 또는 기본값(10%) 사용
-      const finalAmount = calculateFinalAmount(monthlyAmountInWon, periodYearsNum, annualRate)
-
-      // is_custom_rate 판별: 직접 입력했거나, 시스템 값을 수정한 경우 true
-      const isCustomRate = isManualInput || (originalSystemRate !== null && annualRate !== originalSystemRate)
-
-      // symbol 결정: 검색을 통해 선택한 경우 selectedStock.symbol, 직접 입력은 null
-      const stockSymbol = !isManualInput && selectedStock?.symbol ? selectedStock.symbol : null
-
-      // Supabase에 데이터 저장 (만원 단위를 원 단위로 변환하여 저장)
-      const { error } = await supabase
-        .from('records')
-        .insert({
-          user_id: userId,
-          title: stockName.trim(),
-          symbol: stockSymbol, // 주식 심볼 (검색 선택 시만 저장)
-          monthly_amount: monthlyAmountInWon,
-          period_years: periodYearsNum,
-          annual_rate: annualRate, // 실제 조회된 수익률 저장
-          final_amount: finalAmount,
-          start_date: startDate.toISOString().split('T')[0], // 투자 시작일
-          investment_days: investmentDays.length > 0 ? investmentDays : null, // 매월 투자일
-          is_custom_rate: isCustomRate, // 직접 입력 여부
-        })
-
-      if (error) {
-        console.error('저장 오류:', error)
-        alert('저장에 실패했습니다. 다시 시도해주세요.')
-        return
-      }
-
-      // 저장 완료 이벤트 전송
-      // sendGAEvent('event', 'click_add_investment_complete')
-
-      // 성공 시 메인으로 이동
-      router.refresh()
-      router.push('/')
-    } catch (error) {
-      console.error('저장 오류:', error)
-      alert('저장에 실패했습니다. 다시 시도해주세요.')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const handleMarketChange = (newMarket: 'KR' | 'US'): void => {
-    if (market !== newMarket) {
-      setMarket(newMarket)
-      setStockName('')
-      resetSearch()
-      setIsManualInput(false)
-      cancelEdit()
-    }
-  }
 
   return (
     <main className="min-h-screen bg-surface">
@@ -205,9 +56,9 @@ export default function AddInvestmentPage() {
         <div className="grid grid-cols-2 gap-1 bg-secondary p-1 rounded-lg mb-6">
           <button
             type="button"
-            onClick={() => handleMarketChange('KR')}
+            onClick={() => form.handleMarketChange('KR')}
             className={`py-2 px-4 text-sm font-medium rounded-md transition-colors ${
-              market === 'KR'
+              form.market === 'KR'
                 ? 'bg-card text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground-soft'
             }`}
@@ -216,9 +67,9 @@ export default function AddInvestmentPage() {
           </button>
           <button
             type="button"
-            onClick={() => handleMarketChange('US')}
+            onClick={() => form.handleMarketChange('US')}
             className={`py-2 px-4 text-sm font-medium rounded-md transition-colors ${
-              market === 'US'
+              form.market === 'US'
                 ? 'bg-card text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground-soft'
             }`}
@@ -228,74 +79,74 @@ export default function AddInvestmentPage() {
         </div>
 
         {/* 입력 폼 */}
-        <form onSubmit={handleSubmit} className="space-y-4 mb-8">
+        <form onSubmit={form.handleSubmit} className="space-y-4 mb-8">
           {/* 종목명 입력 (검색 기능 포함) */}
           <div>
             <StockSearchInput
-              stockName={stockName}
+              stockName={form.stockName}
               onStockNameChange={(value) => {
-                setIsManualInput(false) // 사용자가 다시 타이핑하면 검색 모드로 전환
-                setStockName(value)
-                setSelectedStock(null) // 입력 변경 시 선택 초기화
-                setAnnualRate(10) // 기본값으로 리셋
-                setOriginalSystemRate(null) // 원본 수익률 리셋
-                cancelEdit() // 수정 모드 종료
+                form.setIsManualInput(false)
+                form.setStockName(value)
+                form.setSelectedStock(null)
+                form.setAnnualRate(10)
+                form.setOriginalSystemRate(null)
+                form.cancelEdit()
               }}
-              market={market}
-              isSearching={isSearching}
-              searchResults={searchResults}
-              showDropdown={showDropdown}
+              market={form.market}
+              isSearching={form.isSearching}
+              searchResults={form.searchResults}
+              showDropdown={form.showDropdown}
               onSelectStock={(stock) => {
-                setStockName(stock.name)
-                void handleSelectStock(stock)
+                form.setStockName(stock.name)
+                void form.handleSelectStock(stock)
               }}
               onManualInputClick={() => {
-                setIsManualModalOpen(true)
-                setManualStockName(stockName)
-                setShowDropdown(false)
+                form.setIsManualModalOpen(true)
+                form.setManualStockName(form.stockName)
+                form.setShowDropdown(false)
               }}
-              onDropdownClose={() => setShowDropdown(false)}
+              onDropdownClose={() => form.setShowDropdown(false)}
             />
             
             <RateDisplay
-              isRateLoading={isRateLoading}
-              rateFetchFailed={rateFetchFailed}
-              isRateEditing={isRateEditing}
-              isManualInput={isManualInput}
-              stockName={stockName}
-              selectedStock={selectedStock}
-              annualRate={annualRate}
-              originalSystemRate={originalSystemRate}
-              editingRate={editingRate}
-              onStartEditing={() => startEditing(annualRate)}
+              isRateLoading={form.isRateLoading}
+              rateFetchFailed={form.rateFetchFailed}
+              isRateEditing={form.isRateEditing}
+              isManualInput={form.isManualInput}
+              stockName={form.stockName}
+              selectedStock={form.selectedStock}
+              annualRate={form.annualRate}
+              originalSystemRate={form.originalSystemRate}
+              editingRate={form.editingRate}
+              onStartEditing={() => form.startEditing(form.annualRate)}
               onConfirmEdit={() => {
-                if (originalSystemRate !== null) {
-                  confirmEdit((newRate: number) => {
-                    setAnnualRate(newRate)
-                    setRateFetchFailed(false)
+                if (form.originalSystemRate !== null) {
+                  form.confirmEdit((newRate: number) => {
+                    form.setAnnualRate(newRate)
+                    form.setRateFetchFailed(false)
                   })
                 } else {
-                  confirmEdit((newRate: number) => setAnnualRate(newRate))
+                  form.confirmEdit((newRate: number) => form.setAnnualRate(newRate))
                 }
               }}
-              onCancelEdit={cancelEdit}
-              onRateChange={handleRateChange}
-              onRateHelpClick={() => setIsRateHelpModalOpen(true)}
+              onCancelEdit={form.cancelEdit}
+              onRateChange={form.handleRateChange}
+              onRateHelpClick={() => modals.setIsRateHelpModalOpen(true)}
             />
           </div>
 
           {/* 월 투자액 입력 (만원 단위) */}
           <AmountInput
-            value={monthlyAmount}
-            onChange={handleAmountChange}
-            onAdjust={adjustAmount}
+            value={form.monthlyAmount}
+            onChange={form.handleAmountChange}
+            onAdjust={form.adjustAmount}
           />
 
           {/* 투자 기간 입력 */}
           <PeriodInput
-            value={period}
-            onChange={handlePeriodChange}
-            onAdjust={adjustPeriod}
+            value={form.period}
+            onChange={form.handlePeriodChange}
+            onAdjust={form.adjustPeriod}
           />
 
           {/* 투자 시작일 입력 */}
@@ -303,13 +154,13 @@ export default function AddInvestmentPage() {
             <label className="block text-sm font-medium text-foreground-soft px-1">
               투자 시작일
             </label>
-            <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+            <Popover open={modals.isDatePickerOpen} onOpenChange={modals.setIsDatePickerOpen}>
               <PopoverTrigger asChild>
                 <Button 
                   variant="outline" 
                   className="w-full justify-between font-normal bg-card rounded-2xl h-12 px-4 text-foreground border-border-subtle hover:bg-surface"
                 >
-                  {startDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  {form.startDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
                   <CaretDown className="w-5 h-5 text-foreground-subtle" />
                 </Button>
               </PopoverTrigger>
@@ -319,12 +170,12 @@ export default function AddInvestmentPage() {
               >
                 <Calendar
                   mode="single"
-                  selected={startDate}
+                  selected={form.startDate}
                   className="mx-auto"
                   onSelect={(date) => {
                     if (date) {
-                      setStartDate(date)
-                      setIsDatePickerOpen(false)
+                      form.setStartDate(date)
+                      modals.setIsDatePickerOpen(false)
                     }
                   }}
                 />
@@ -349,9 +200,9 @@ export default function AddInvestmentPage() {
               </div>
             </div>
 
-            {investmentDays.length > 0 ? (
+            {form.investmentDays.length > 0 ? (
               <div className="flex flex-wrap gap-1.5">
-                {[...investmentDays].sort((a, b) => a - b).map((day) => (
+                {[...form.investmentDays].sort((a, b) => a - b).map((day) => (
                   <span
                     key={day}
                     className="inline-flex items-center bg-[var(--brand-accent-bg)] text-[var(--brand-accent-text)] px-2.5 py-0.5 rounded-full text-xs font-medium"
@@ -365,12 +216,12 @@ export default function AddInvestmentPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setIsDaysPickerOpen(true)}
+              onClick={() => modals.setIsDaysPickerOpen(true)}
               className="w-full justify-between bg-card rounded-xl h-11 px-4 text-sm text-foreground border-border-subtle hover:bg-surface"
             >
               <span>
-                {investmentDays.length > 0
-                  ? `${[...investmentDays].sort((a, b) => a - b).join(', ')}일 선택됨`
+                {form.investmentDays.length > 0
+                  ? `${[...form.investmentDays].sort((a, b) => a - b).join(', ')}일 선택됨`
                   : '날짜 선택하기'}
               </span>
               <CalendarBlank className="w-4 h-4 text-foreground-subtle" />
@@ -379,20 +230,20 @@ export default function AddInvestmentPage() {
         </form>
 
         <InvestmentPreviewCard
-          stockName={stockName}
-          monthlyAmount={monthlyAmount}
-          period={period}
-          annualRate={annualRate}
-          isRateLoading={isRateLoading}
+          stockName={form.stockName}
+          monthlyAmount={form.monthlyAmount}
+          period={form.period}
+          annualRate={form.annualRate}
+          isRateLoading={form.isRateLoading}
         />
 
         {/* 저장하기 버튼 */}
         <button
-          onClick={handleSubmit}
-          disabled={isSubmitting}
+          onClick={form.handleSubmit}
+          disabled={form.isSubmitting}
           className="w-full bg-surface-dark text-white font-medium rounded-xl py-4 hover:bg-surface-dark-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          {isSubmitting ? (
+          {form.isSubmitting ? (
             <>
               <CircleNotch className="w-5 h-5 animate-spin" />
               <span>저장 중...</span>
@@ -404,43 +255,43 @@ export default function AddInvestmentPage() {
       </div>
 
       {/* 매월 투자일 선택 바텀 시트 */}
-      {isDaysPickerOpen && (
+      {modals.isDaysPickerOpen && (
         <InvestmentDaysPickerSheet
-          days={investmentDays}
-          onClose={() => setIsDaysPickerOpen(false)}
+          days={form.investmentDays}
+          onClose={() => modals.setIsDaysPickerOpen(false)}
           onApply={(days) => {
-            setInvestmentDays(days)
-            setIsDaysPickerOpen(false)
+            form.setInvestmentDays(days)
+            modals.setIsDaysPickerOpen(false)
           }}
         />
       )}
       
       <ManualInputModal
-        isOpen={isManualModalOpen}
-        onClose={closeManualModal}
-        stockName={manualStockName}
-        onStockNameChange={setManualStockName}
-        rate={manualRate}
-        onRateChange={setManualRate}
+        isOpen={form.isManualModalOpen}
+        onClose={form.closeAndResetManual}
+        stockName={form.manualStockName}
+        onStockNameChange={form.setManualStockName}
+        rate={form.manualRate}
+        onRateChange={form.setManualRate}
         onConfirm={() => {
-          handleManualConfirm({
+          form.handleManualConfirm({
             onConfirm: (name: string, rate: number) => {
-              setIsManualInput(true)
-              setStockName(name)
-              setAnnualRate(rate)
-              setSelectedStock(null)
-              setOriginalSystemRate(null)
-              setRateFetchFailed(false)
-              cancelEdit()
+              form.setIsManualInput(true)
+              form.setStockName(name)
+              form.setAnnualRate(rate)
+              form.setSelectedStock(null)
+              form.setOriginalSystemRate(null)
+              form.setRateFetchFailed(false)
+              form.cancelEdit()
             },
           })
         }}
-        onRateHelpClick={() => setIsRateHelpModalOpen(true)}
+        onRateHelpClick={() => modals.setIsRateHelpModalOpen(true)}
       />
 
       <RateHelpModal
-        isOpen={isRateHelpModalOpen}
-        onClose={() => setIsRateHelpModalOpen(false)}
+        isOpen={modals.isRateHelpModalOpen}
+        onClose={() => modals.setIsRateHelpModalOpen(false)}
       />
     </main>
   )
