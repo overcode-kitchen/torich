@@ -49,7 +49,7 @@ export function usePaymentCompletion() {
     if (!p) return
 
     clearPaymentCompleted(p.investmentId, p.year, p.month, p.day)
-    const key = `${p.investmentId}_${p.year}_${p.month}_${e.day}` 
+    const key = `${p.investmentId}_${p.year}_${p.month}_${p.day}` 
     setCompletedKeys((prev) => {
       const next = new Set(prev)
       next.delete(key)

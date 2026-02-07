@@ -8,7 +8,6 @@ import {
   Trash,
   Check,
   X,
-  Info,
   DotsThreeVertical,
   Bell,
   BellSlash,
@@ -44,6 +43,11 @@ import {
 } from '@/components/ui/table'
 import { useNotificationToggle } from '@/app/hooks/useNotificationToggle'
 import { useInvestmentDetailEdit } from '@/app/hooks/useInvestmentDetailEdit'
+import { useInvestmentTabs } from '@/app/hooks/useInvestmentTabs'
+import { usePaymentPagination } from '@/app/hooks/usePaymentPagination'
+import { useScrollHeader } from '@/app/hooks/useScrollHeader'
+import { useInvestmentCalculations } from '@/app/hooks/useInvestmentCalculations'
+import { InvestmentField } from '@/app/components/InvestmentField'
 import DeleteConfirmModal from '@/app/components/DeleteConfirmModal'
 
 interface UpdateData {
@@ -72,12 +76,17 @@ export default function InvestmentDetailView({
   isUpdating = false,
   calculateFutureValue,
 }: InvestmentDetailViewProps) {
-  // refs (기존 유지)
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const overviewRef = useRef<HTMLElement | null>(null)
-  const infoRef = useRef<HTMLElement | null>(null)
-  const historyRef = useRef<HTMLElement | null>(null)
-  const titleRef = useRef<HTMLDivElement>(null)
+  // 훅들
+  const {
+    activeTab,
+    scrollContainerRef,
+    overviewRef,
+    infoRef,
+    historyRef,
+    handleTabClick,
+  } = useInvestmentTabs();
+
+  const { showStickyTitle, titleRef } = useScrollHeader();
 
   // 알림 훅
   const { notificationOn, toggleNotification } = useNotificationToggle(item.id)
@@ -97,9 +106,40 @@ export default function InvestmentDetailView({
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
   const [isDaysPickerOpen, setIsDaysPickerOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'info' | 'history'>('overview')
-  const [visiblePaymentMonths, setVisiblePaymentMonths] = useState(6)
-  const [showStickyTitle, setShowStickyTitle] = useState(false)
+
+  const {
+    startDate,
+    displayMonthlyAmount,
+    displayPeriodYears,
+    displayAnnualRate,
+    endDate,
+    calculatedFutureValue,
+    totalPrincipal,
+    calculatedProfit,
+    progress,
+    completed,
+    nextPaymentDate,
+  } = useInvestmentCalculations({
+    item,
+    isEditMode,
+    editMonthlyAmount,
+    editPeriodYears,
+    editAnnualRate,
+    editInvestmentDays,
+    calculateFutureValue,
+  });
+
+  const fullPaymentHistory = getPaymentHistoryFromStart(
+    item.id,
+    item.investment_days ?? undefined,
+    item.start_date ?? item.created_at ?? undefined,
+    item.period_years
+  );
+
+  const { paymentHistory, hasMorePaymentHistory, loadMore } = usePaymentPagination(
+    fullPaymentHistory,
+    item.id
+  );
   
   // 원본 수익률 저장 (비교용)
   const originalRate = item.annual_rate || 10
@@ -117,85 +157,7 @@ export default function InvestmentDetailView({
     }
   }, [isEditMode, item, initializeFromItem])
 
-  // 종목 변경 시 월별 납입 페이징 초기화
-  useEffect(() => {
-    setVisiblePaymentMonths(6)
-  }, [item.id])
 
-  // 스크롤 시 종목명 고정 감지
-  useEffect(() => {
-    if (!titleRef.current) return
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setShowStickyTitle(!entry.isIntersecting)
-      },
-      {
-        threshold: 0,
-        rootMargin: '-52px 0px 0px 0px', // 헤더 높이만큼 여유
-      }
-    )
-
-    observer.observe(titleRef.current)
-
-    return () => {
-      observer.disconnect()
-    }
-  }, [])
-
-  // 시작일 추출
-  const startDate = getStartDate(item)
-  
-  // 현재 표시할 값들 (수정 모드에서는 수정 중인 값, 아니면 원본)
-  const displayMonthlyAmount = isEditMode 
-    ? (parseInt(editMonthlyAmount.replace(/,/g, '') || '0') * 10000) 
-    : item.monthly_amount
-  const displayPeriodYears = isEditMode 
-    ? parseInt(editPeriodYears || '0') 
-    : item.period_years
-  const displayAnnualRate = isEditMode 
-    ? parseFloat(editAnnualRate || '0') 
-    : (item.annual_rate || 10)
-  
-  const endDate = calculateEndDate(startDate, displayPeriodYears || 1)
-  
-  // 연이율
-  const R = displayAnnualRate / 100
-  
-  // 만기 시점 미래 가치 계산
-  const calculatedFutureValue = calculateFutureValue(
-    displayMonthlyAmount,
-    displayPeriodYears || 1,
-    displayPeriodYears || 1,
-    R
-  )
-  
-  // 총 원금 계산
-  const totalPrincipal = displayMonthlyAmount * 12 * (displayPeriodYears || 1)
-  
-  // 수익금 계산
-  const calculatedProfit = calculatedFutureValue - totalPrincipal
-  
-  // 진행률 계산
-  const progress = calculateProgress(startDate, displayPeriodYears || 1)
-  
-  // 완료 여부
-  const completed = isCompleted(startDate, displayPeriodYears || 1)
-  
-  // 다음 투자일
-  const nextPaymentDate = getNextPaymentDate(
-    isEditMode ? editInvestmentDays : item.investment_days
-  )
-  
-  // 투자 히스토리 (시작일부터) - 해당 월의 모든 납입일이 완료된 경우에만 완료로 표시
-  const fullPaymentHistory = getPaymentHistoryFromStart(
-    item.id,
-    item.investment_days ?? undefined,
-    item.start_date ?? item.created_at ?? undefined,
-    item.period_years
-  )
-  const paymentHistory = fullPaymentHistory.slice(0, visiblePaymentMonths)
-  const hasMorePaymentHistory = visiblePaymentMonths < fullPaymentHistory.length
 
 
   // 저장
@@ -223,28 +185,6 @@ export default function InvestmentDetailView({
     setIsEditMode(false)
   }
 
-  const handleTabClick = (tab: 'overview' | 'info' | 'history') => {
-    setActiveTab(tab)
-    const container = scrollContainerRef.current
-    if (!container) return
-
-    const target =
-      tab === 'overview'
-        ? overviewRef.current
-        : tab === 'info'
-          ? infoRef.current
-          : historyRef.current
-
-    if (!target) return
-
-    const headerAndTabsHeight = 52 + 40 // header(52) + tabs 영역 약간의 높이
-    const containerRect = container.getBoundingClientRect()
-    const targetRect = target.getBoundingClientRect()
-    const currentScrollTop = container.scrollTop
-    const offset = targetRect.top - containerRect.top + currentScrollTop - headerAndTabsHeight
-
-    container.scrollTo({ top: offset, behavior: 'smooth' })
-  }
 
   return (
     <div ref={scrollContainerRef} className="fixed inset-0 z-50 bg-background overflow-y-auto">
@@ -410,95 +350,57 @@ export default function InvestmentDetailView({
               </h3>
               <div className="space-y-6">
               {/* 월 투자금 */}
-              {isEditMode ? (
-                <div className="space-y-1.5">
-                  <label className="block text-foreground font-bold text-base">월 투자금</label>
-                  <InputWithUnit
-                    value={editMonthlyAmount}
-                    onChange={(e) => handleNumericInput(e.target.value, setEditMonthlyAmount)}
-                    placeholder="100"
-                    unit="만원"
-                  />
-                </div>
-              ) : (
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">월 투자금</span>
-                  <span className="text-base font-semibold text-foreground">
-                    {formatCurrency(item.monthly_amount)}
-                  </span>
-                </div>
-              )}
+              <InvestmentField
+                label="월 투자금"
+                value={formatCurrency(item.monthly_amount)}
+                editValue={editMonthlyAmount}
+                editPlaceholder="100"
+                editUnit="만원"
+                isEditMode={isEditMode}
+                onEdit={(value) => handleNumericInput(value, setEditMonthlyAmount)}
+              />
 
             {/* 목표 기간 */}
-            {isEditMode ? (
-              <div className="space-y-1.5">
-                <label className="block text-foreground font-bold text-base">목표 기간</label>
-                <InputWithUnit
-                  value={editPeriodYears}
-                  onChange={(e) => handleNumericInput(e.target.value, setEditPeriodYears)}
-                  placeholder="10"
-                  unit="년"
-                />
-              </div>
-            ) : (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">목표 기간</span>
-                <span className="text-base font-semibold text-foreground">
-                  {item.period_years}년
-                </span>
-              </div>
-            )}
+            <InvestmentField
+              label="목표 기간"
+              value={`${item.period_years}년`}
+              editValue={editPeriodYears}
+              editPlaceholder="10"
+              editUnit="년"
+              isEditMode={isEditMode}
+              onEdit={(value) => handleNumericInput(value, setEditPeriodYears)}
+            />
 
             {/* 연 수익률 */}
-            {isEditMode ? (
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-1.5">
-                  <label className="block text-foreground font-bold text-base">연 수익률</label>
-                  <div className="group relative">
-                    <Info className="w-4 h-4 text-foreground-subtle" aria-hidden />
-                    <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-48 p-2 bg-surface-dark text-white text-xs rounded-lg z-10">
-                      수익률을 직접 수정하면 시스템 수익률 대신 직접 입력한 값이 적용됩니다.
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <InputWithUnit
-                      value={editAnnualRate}
-                      onChange={(e) => handleRateInput(e.target.value)}
-                      placeholder="10"
-                      unit="%"
-                    />
-                    {isRateManuallyEdited && parseFloat(editAnnualRate) !== originalRate && (
-                      <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">직접 수정</span>
-                    )}
-                  </div>
-                  <div className="flex justify-end w-full">
-                    <InvestmentEditSheet
-                      suggestions={rateSuggestions}
-                      onSelect={(rate) => {
-                        setEditAnnualRate(formatRate(rate))
-                        setIsRateManuallyEdited(rate !== originalRate)
-                      }}
-                    />
-                  </div>
+            <InvestmentField
+              label="연 수익률"
+              value={`${displayAnnualRate.toFixed(0)}%`}
+              editValue={editAnnualRate}
+              editPlaceholder="10"
+              editUnit="%"
+              isEditMode={isEditMode}
+              onEdit={handleRateInput}
+              badge={{
+                text: isCustomRate ? '직접 입력' : '10년 평균',
+                variant: isCustomRate ? 'custom' : 'default'
+              }}
+              tooltip="수익률을 직접 수정하면 시스템 수익률 대신 직접 입력한 값이 적용됩니다."
+            >
+              <div className="space-y-2">
+                {isRateManuallyEdited && parseFloat(editAnnualRate) !== originalRate && (
+                  <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">직접 수정</span>
+                )}
+                <div className="flex justify-end w-full">
+                  <InvestmentEditSheet
+                    suggestions={rateSuggestions}
+                    onSelect={(rate) => {
+                      setEditAnnualRate(formatRate(rate))
+                      setIsRateManuallyEdited(rate !== originalRate)
+                    }}
+                  />
                 </div>
               </div>
-            ) : (
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm text-muted-foreground">연 수익률</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center rounded-full bg-surface text-foreground-muted text-xs font-medium px-2.5 py-1">
-                    {isCustomRate ? '직접 입력' : '10년 평균'}
-                  </span>
-                  <span className="text-base font-semibold text-foreground">
-                    {displayAnnualRate.toFixed(0)}%
-                  </span>
-                </div>
-              </div>
-            )}
+            </InvestmentField>
 
             {/* 매월 투자일 */}
             {isEditMode ? (
@@ -543,28 +445,25 @@ export default function InvestmentDetailView({
             <div className="border-t border-border-subtle-lighter my-2" />
             
             {/* 총 원금 */}
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">총 원금</span>
-              <span className="text-base font-semibold text-foreground">
-                {formatCurrency(totalPrincipal)}
-              </span>
-            </div>
+            <InvestmentField
+              label="총 원금"
+              value={formatCurrency(totalPrincipal)}
+              isEditMode={false}
+            />
             
             {/* 예상 수익 */}
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">예상 수익</span>
-              <span className="text-base font-semibold text-foreground">
-                + {formatCurrency(calculatedProfit)}
-              </span>
-            </div>
+            <InvestmentField
+              label="예상 수익"
+              value={`+ ${formatCurrency(calculatedProfit)}`}
+              isEditMode={false}
+            />
 
             {/* 만기 시 예상 금액 */}
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">만기 시 예상 금액</span>
-              <span className="text-base font-semibold text-foreground">
-                {formatCurrency(calculatedFutureValue)}
-              </span>
-            </div>
+            <InvestmentField
+              label="만기 시 예상 금액"
+              value={formatCurrency(calculatedFutureValue)}
+              isEditMode={false}
+            />
               </div>
             </section>
 
@@ -614,7 +513,7 @@ export default function InvestmentDetailView({
                 {hasMorePaymentHistory && (
                   <button
                     type="button"
-                    onClick={() => setVisiblePaymentMonths((prev) => prev + 10)}
+                    onClick={loadMore}
                     className="mt-3 w-full py-2.5 text-sm font-medium text-foreground-muted bg-surface-hover hover:bg-secondary rounded-lg transition-colors"
                   >
                     이어서 보기
