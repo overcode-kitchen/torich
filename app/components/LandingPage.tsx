@@ -1,20 +1,114 @@
 'use client'
 
+import { useCallback, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { CaretDown } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 
+/** 자석 느낌 easing: 빨리 시작해서 끝에서 끌어당기는 느낌 */
+function easeOutCubic(t: number): number {
+  return 1 - Math.pow(1 - t, 3)
+}
+
+/** 스크롤을 목표 위치로 자석처럼 끌어당기는 애니메이션 */
+function scrollToWithMagnet(
+  element: HTMLElement,
+  targetTop: number,
+  duration = 350
+) {
+  const startTop = element.scrollTop
+  const distance = targetTop - startTop
+  if (Math.abs(distance) < 2) return
+
+  const startTime = performance.now()
+
+  function tick(currentTime: number) {
+    const elapsed = currentTime - startTime
+    const progress = Math.min(elapsed / duration, 1)
+    const eased = easeOutCubic(progress)
+    element.scrollTop = startTop + distance * eased
+    if (progress < 1) requestAnimationFrame(tick)
+  }
+
+  requestAnimationFrame(tick)
+}
+
 function LandingPage() {
   const router = useRouter()
+  const mainRef = useRef<HTMLElement>(null)
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isAnimatingRef = useRef(false)
+
+  const snapToNearestSection = useCallback(() => {
+    const main = mainRef.current
+    if (!main || isAnimatingRef.current) return
+
+    const snapSections = Array.from(main.querySelectorAll('section'))
+    const scrollTop = main.scrollTop
+    const viewportMid = scrollTop + main.clientHeight / 2
+
+    let targetTop: number | null = null
+    let nearestDistance = Infinity
+
+    for (const section of snapSections) {
+      const sectionTop = (section as HTMLElement).offsetTop
+      const sectionMid = sectionTop + (section as HTMLElement).offsetHeight / 2
+      const distance = Math.abs(viewportMid - sectionMid)
+      if (distance < nearestDistance) {
+        nearestDistance = distance
+        targetTop = sectionTop
+      }
+    }
+
+    if (targetTop !== null && Math.abs(main.scrollTop - targetTop) > 5) {
+      isAnimatingRef.current = true
+      scrollToWithMagnet(main, targetTop)
+      setTimeout(() => {
+        isAnimatingRef.current = false
+      }, 350)
+    }
+  }, [])
+
+  useEffect(() => {
+    const main = mainRef.current
+    if (!main) return
+
+    const handleScrollEnd = () => {
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current)
+      scrollTimeoutRef.current = setTimeout(() => {
+        snapToNearestSection()
+        scrollTimeoutRef.current = null
+      }, 120)
+    }
+
+    main.addEventListener('scroll', handleScrollEnd, { passive: true })
+    return () => {
+      main.removeEventListener('scroll', handleScrollEnd)
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current)
+    }
+  }, [snapToNearestSection])
+
+  const scrollToSection2 = useCallback(() => {
+    const main = mainRef.current
+    const section2 = document.getElementById('landing-section-2')
+    if (!main || !section2) return
+    const targetTop = section2.offsetTop
+    scrollToWithMagnet(main, targetTop, 450)
+  }, [])
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-surface to-white text-foreground">
-      {/* 하단 네비게이션에 가려지지 않도록 여유 padding 추가 */}
-      <div className="mx-auto flex min-h-dvh max-w-md flex-col pb-24">
-        {/* 섹션 1: 히어로 */}
-        <section className="flex min-h-dvh flex-col px-4 pt-8">
+    <main
+      ref={mainRef}
+      className="h-dvh overflow-y-auto overflow-x-hidden snap-y snap-mandatory overscroll-y-contain bg-gradient-to-b from-surface to-white text-foreground"
+    >
+      {/* 모바일 앱 스타일: 화면 단위 스냅 스크롤 */}
+      <div className="mx-auto flex max-w-md flex-col">
+        {/* 섹션 1: 히어로 - 뷰포트 1개 */}
+        <section
+          className="flex h-dvh shrink-0 snap-start snap-always flex-col overflow-y-auto overflow-x-hidden px-4 pt-8"
+          aria-label="토리치 소개"
+        >
           {/* 상단 브랜드 영역 */}
           <header className="mb-3">
             <div className="relative h-10 w-36">
@@ -43,16 +137,22 @@ function LandingPage() {
               </p>
             </div>
 
-            {/* 토리 그래픽 자리 (사용자 일러스트 삽입 영역) */}
-            <div className="rounded-3xl bg-[var(--brand-accent-bg)]/60 py-16 text-center text-foreground shadow-sm">
-              <p className="text-base font-semibold">토리 그래픽 영역</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                (여기에 메인 일러스트가 들어갑니다)
-              </p>
-            </div>
-
-            {/* 토리치가 해주는 일 카드 */}
-            <div className="mt-4 space-y-4 rounded-3xl bg-card p-5 shadow-sm">
+            {/* 토리 그래픽 + 토리치가 해주는 일 카드 - 3레이어: grab(뒤) → 흰박스(중간) → grab_hand(앞) */}
+            <div className="relative shrink-0">
+              {/* Layer 1: grab (맨 뒤) */}
+              <div className="relative z-0 flex justify-center -mb-12">
+                <Image
+                  src="/images/torich_graphic(grab).png?v=2"
+                  alt=""
+                  width={448}
+                  height={448}
+                  className="w-full object-contain object-center"
+                  priority
+                  aria-hidden
+                />
+              </div>
+              {/* Layer 2: 흰 박스 (중간) */}
+              <div className="relative z-10 mt-0 space-y-4 rounded-3xl bg-card p-5 shadow-sm">
               <p className="text-sm font-semibold text-[var(--brand-accent-text)]">토리치가 해주는 일</p>
               <ul className="space-y-4 text-base">
                 <li className="flex items-center gap-3">
@@ -91,6 +191,18 @@ function LandingPage() {
                   </span>
                 </li>
               </ul>
+              </div>
+              {/* Layer 3: grab_hand (맨 앞) - grab 위에 겹쳐 얹음 */}
+              <div className="absolute inset-x-0 top-0 z-20 flex justify-center pointer-events-none">
+                <Image
+                  src="/images/torich_graphic(grab_hand).png"
+                  alt="토리 - 적립식 투자를 관리해주는 다람쥐 캐릭터"
+                  width={448}
+                  height={448}
+                  className="w-full max-w-full object-contain object-center"
+                  aria-hidden
+                />
+              </div>
             </div>
 
             {/* 메인 CTA + 스크롤 유도 */}
@@ -111,12 +223,7 @@ function LandingPage() {
                   type="button"
                   className="flex flex-col items-center gap-1 text-xs text-foreground-subtle"
                   aria-label="아래로 스크롤하기"
-                  onClick={() => {
-                    if (typeof window !== 'undefined') {
-                      const secondSection = document.getElementById('landing-section-2')
-                      secondSection?.scrollIntoView({ behavior: 'smooth' })
-                    }
-                  }}
+                  onClick={scrollToSection2}
                 >
                   <span>더 알아보기</span>
                   <CaretDown className="h-5 w-5 animate-bounce" />
@@ -126,17 +233,22 @@ function LandingPage() {
           </div>
         </section>
 
-        {/* 섹션 2: 고민 & 해결 온보딩 - 상단은 #5D4633 0%(투명)으로 위 페이지와 자연스럽게 이어짐 */}
+        {/* 섹션 2: 고민 & 해결 온보딩 - 뷰포트 1개, 자석처럼 스냅 */}
         <section
           id="landing-section-2"
-          className="flex min-h-dvh flex-col bg-[linear-gradient(to_bottom,rgba(93,70,51,0)_0%,#f3e5d6_20%,#d4b38a_55%,#5D4633_100%)] px-4 pb-28 pt-10"
+          className="flex h-dvh shrink-0 snap-start snap-always flex-col overflow-y-auto overflow-x-hidden px-4 pt-10"
+          style={{
+            background:
+              'linear-gradient(to bottom, #292A2E 0%, #292A2E 55%, #e5e2dd 85%, #f5f3f0 100%)',
+          }}
+          aria-label="고민 공감"
         >
-          <div className="flex-1 space-y-8">
+          <div className="space-y-8">
             <div className="space-y-3">
-              <h2 className="text-3xl font-semibold tracking-tight">
+              <h2 className="text-3xl font-semibold tracking-tight text-primary-foreground">
                 이런 고민 있지 않아?
               </h2>
-              <p className="text-base text-foreground-soft">
+              <p className="text-base text-primary-foreground/85">
                 적립식 투자, 마음은 있는데
                 <br />
                 막상 매달 챙기는 건 쉽지 않죠.
@@ -144,47 +256,49 @@ function LandingPage() {
             </div>
 
             {/* 말풍선 리스트 - 온보딩 시안과 유사한 위치/레이아웃 */}
-            <div className="relative mt-4 h-40">
+            <div className="relative mt-4 h-48">
               <div className="absolute left-1 top-0 inline-flex max-w-[260px] -rotate-6 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground shadow-sm">
                 매달 몇 일에 넣어야 했더라...
               </div>
               <div className="absolute right-0 top-14 inline-flex max-w-[260px] rotate-4 justify-end rounded-full border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground shadow-sm text-right">
                 이번 달 빠뜨린 거 같은데...
               </div>
-              <div className="absolute left-6 bottom-0 inline-flex max-w-[260px] -rotate-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground shadow-sm">
+              <div className="absolute left-6 bottom-10 inline-flex max-w-[260px] -rotate-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground shadow-sm">
                 내가 총 얼마나 넣었지...?
               </div>
-            </div>
-
-            {/* 고민하는 토리 그래픽 자리 */}
-            <div className="mt-4 rounded-3xl bg-[var(--brand-accent-bg)]/60 py-16 text-center text-foreground shadow-sm">
-              <p className="text-base font-semibold">고민에 빠진 토리 그래픽</p>
-              <p className="mt-1 text-xs text-foreground-muted">
-                (여기에 두 번째 온보딩 일러스트가 들어갑니다)
-              </p>
+              {/* bubblebubble.svg - 생각 이어지는 작은 구름형 (내가 총 얼마 넣었지 말풍선 아래) */}
+              <div className="absolute -bottom-7 left-1/2 -translate-x-1/2">
+                <Image
+                  src="/icons/svg/bubblebubble.svg"
+                  alt=""
+                  width={36}
+                  height={44}
+                  className="opacity-90"
+                  aria-hidden
+                />
+              </div>
             </div>
           </div>
 
-          {/* 하단 CTA + 로그인 유도 */}
-          <div className="mt-8 space-y-4 border-t border-border pt-6">
-            <Button
-              size="lg"
-              className="w-full py-3.5 text-base font-semibold"
-              variant="default"
-              onClick={() => router.push('/login')}
-            >
-              무료로 시작하기
-            </Button>
-
-            <p className="text-center text-sm text-foreground-muted">
-              이미 계정이 있으신가요?{' '}
-              <Link
-                href="/login"
-                className="font-medium text-[var(--brand-accent-text)] underline-offset-4 hover:underline"
-              >
-                로그인
-              </Link>
-            </p>
+          {/* 고민하는 토리 그래픽 - max-w-md 내에서 좌우 꽉 차게, 반응형 360~448px */}
+          <div className="relative -mx-4 mt-6 flex min-h-[280px] w-[calc(100%+2rem)] items-end justify-center">
+            {/* 상단→하단 그라데이션 오버레이 (0% #292A2E 100%, 44% 72%, 100% 투명) */}
+            <div
+              className="pointer-events-none absolute inset-0 z-10"
+              style={{
+                background:
+                  'linear-gradient(to bottom, #292A2E 0%, rgba(41,42,46,0.72) 44%, rgba(41,42,46,0) 100%)',
+              }}
+              aria-hidden
+            />
+            <Image
+              src="/images/torich_graphic(thinking).png"
+              alt="고민에 빠진 토리 - 적립식 투자를 고민하는 다람쥐 캐릭터"
+              width={448}
+              height={448}
+              className="relative z-0 w-full min-w-0 object-contain object-bottom"
+              priority
+            />
           </div>
         </section>
       </div>
