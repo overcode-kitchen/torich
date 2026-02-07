@@ -47,7 +47,9 @@ import { useInvestmentTabs } from '@/app/hooks/useInvestmentTabs'
 import { usePaymentPagination } from '@/app/hooks/usePaymentPagination'
 import { useScrollHeader } from '@/app/hooks/useScrollHeader'
 import { useInvestmentCalculations } from '@/app/hooks/useInvestmentCalculations'
-import { InvestmentField } from '@/app/components/InvestmentField'
+import { ProgressSection } from '@/app/components/InvestmentDetailSections/ProgressSection'
+import { InfoSection } from '@/app/components/InvestmentDetailSections/InfoSection'
+import { PaymentHistorySection } from '@/app/components/InvestmentDetailSections/PaymentHistorySection'
 import DeleteConfirmModal from '@/app/components/DeleteConfirmModal'
 
 interface UpdateData {
@@ -322,205 +324,51 @@ export default function InvestmentDetailView({
 
         {/* 진행률 - 수정 모드에서는 숨김 */}
         {!isEditMode && (
-          <section className="py-6 border-b border-border-subtle-lighter">
-            <div className="flex justify-between text-base text-muted-foreground mb-3">
-              <span className="font-medium">진행률</span>
-              <span className="font-bold text-foreground">{progress}%</span>
-            </div>
-            <div className="w-full h-2 bg-surface-hover rounded-full overflow-hidden">
-              <div 
-                className={`h-full rounded-full transition-all duration-500 ${
-                  completed ? 'bg-green-500' : 'bg-brand-500'
-                }`}
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-sm text-foreground-subtle mt-3">
-              <span>시작: {formatFullDate(startDate)}</span>
-              <span>종료: {formatFullDate(endDate)}</span>
-            </div>
-          </section>
+          <ProgressSection
+            progress={progress}
+            completed={completed}
+            startDate={startDate}
+            endDate={endDate}
+          />
         )}
 
         <div className="divide-y divide-border-subtle-lighter">
-          {/* 투자 정보 / 수정 폼 */}
-          <section ref={infoRef} className="py-6">
-              <h3 className="text-lg font-semibold tracking-tight text-foreground mb-4">
-                {isEditMode ? '투자 정보 수정' : '투자 정보'}
-              </h3>
-              <div className="space-y-6">
-              {/* 월 투자금 */}
-              <InvestmentField
-                label="월 투자금"
-                value={formatCurrency(item.monthly_amount)}
-                editValue={editMonthlyAmount}
-                editPlaceholder="100"
-                editUnit="만원"
-                isEditMode={isEditMode}
-                onEdit={(value) => handleNumericInput(value, setEditMonthlyAmount)}
-              />
+          <InfoSection
+            item={item}
+            isEditMode={isEditMode}
+            editMonthlyAmount={editMonthlyAmount}
+            editPeriodYears={editPeriodYears}
+            editAnnualRate={editAnnualRate}
+            editInvestmentDays={editInvestmentDays}
+            setEditMonthlyAmount={setEditMonthlyAmount}
+            setEditPeriodYears={setEditPeriodYears}
+            setEditAnnualRate={setEditAnnualRate}
+            setEditInvestmentDays={setEditInvestmentDays}
+            setIsDaysPickerOpen={setIsDaysPickerOpen}
+            handleNumericInput={handleNumericInput}
+            handleRateInput={handleRateInput}
+            displayAnnualRate={displayAnnualRate}
+            totalPrincipal={totalPrincipal}
+            calculatedProfit={calculatedProfit}
+            calculatedFutureValue={calculatedFutureValue}
+            originalRate={originalRate}
+            isRateManuallyEdited={isRateManuallyEdited}
+            setIsRateManuallyEdited={setIsRateManuallyEdited}
+            formatRate={formatRate}
+            rateSuggestions={rateSuggestions}
+            isCustomRate={isCustomRate}
+            infoRef={infoRef}
+          />
 
-            {/* 목표 기간 */}
-            <InvestmentField
-              label="목표 기간"
-              value={`${item.period_years}년`}
-              editValue={editPeriodYears}
-              editPlaceholder="10"
-              editUnit="년"
-              isEditMode={isEditMode}
-              onEdit={(value) => handleNumericInput(value, setEditPeriodYears)}
-            />
-
-            {/* 연 수익률 */}
-            <InvestmentField
-              label="연 수익률"
-              value={`${displayAnnualRate.toFixed(0)}%`}
-              editValue={editAnnualRate}
-              editPlaceholder="10"
-              editUnit="%"
-              isEditMode={isEditMode}
-              onEdit={handleRateInput}
-              badge={{
-                text: isCustomRate ? '직접 입력' : '10년 평균',
-                variant: isCustomRate ? 'custom' : 'default'
-              }}
-              tooltip="수익률을 직접 수정하면 시스템 수익률 대신 직접 입력한 값이 적용됩니다."
-            >
-              <div className="space-y-2">
-                {isRateManuallyEdited && parseFloat(editAnnualRate) !== originalRate && (
-                  <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">직접 수정</span>
-                )}
-                <div className="flex justify-end w-full">
-                  <InvestmentEditSheet
-                    suggestions={rateSuggestions}
-                    onSelect={(rate) => {
-                      setEditAnnualRate(formatRate(rate))
-                      setIsRateManuallyEdited(rate !== originalRate)
-                    }}
-                  />
-                </div>
-              </div>
-            </InvestmentField>
-
-            {/* 매월 투자일 */}
-            {isEditMode ? (
-              <div className="space-y-1.5">
-                <label className="block text-foreground font-bold text-base">
-                  매월 투자일
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {[...editInvestmentDays].sort((a, b) => a - b).map((day) => (
-                    <span
-                      key={day}
-                      className="inline-flex items-center gap-1 bg-[var(--brand-accent-bg)] text-[var(--brand-accent-text)] px-2 py-0.5 rounded-full text-xs font-medium"
-                    >
-                      {day}일
-                      <button
-                        type="button"
-                        onClick={() => setEditInvestmentDays(prev => prev.filter(d => d !== day))}
-                        className="hover:text-brand-900"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => setIsDaysPickerOpen(true)}
-                    className="inline-flex items-center bg-surface-hover text-foreground-soft px-2 py-0.5 rounded-full text-xs font-semibold hover:bg-secondary transition-colors"
-                  >
-                    + 추가
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">매월 투자일</span>
-                <span className="text-base font-semibold text-foreground">
-                  {formatInvestmentDays(item.investment_days)}
-                </span>
-              </div>
-            )}
-
-            <div className="border-t border-border-subtle-lighter my-2" />
-            
-            {/* 총 원금 */}
-            <InvestmentField
-              label="총 원금"
-              value={formatCurrency(totalPrincipal)}
-              isEditMode={false}
-            />
-            
-            {/* 예상 수익 */}
-            <InvestmentField
-              label="예상 수익"
-              value={`+ ${formatCurrency(calculatedProfit)}`}
-              isEditMode={false}
-            />
-
-            {/* 만기 시 예상 금액 */}
-            <InvestmentField
-              label="만기 시 예상 금액"
-              value={formatCurrency(calculatedFutureValue)}
-              isEditMode={false}
-            />
-              </div>
-            </section>
-
-            {/* 월별 납입 기록 - 하단 배치, 시작일부터, 페이징 */}
             {!isEditMode && fullPaymentHistory.length > 0 && (
-              <section ref={historyRef} className="py-6">
-                <h3 className="text-lg font-semibold tracking-tight text-foreground mb-3">월별 납입 기록</h3>
-                <div className="overflow-x-auto rounded-lg">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-border hover:bg-transparent">
-                        <TableHead className="text-foreground-muted font-semibold text-sm">월</TableHead>
-                        <TableHead className="text-foreground-muted font-semibold text-sm">투자일</TableHead>
-                        <TableHead className="text-foreground-muted font-semibold text-sm">납입 금액</TableHead>
-                        <TableHead className="text-foreground-muted font-semibold text-sm">상태</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paymentHistory.map(({ monthLabel, yearMonth, completed: monthCompleted }) => (
-                        <TableRow key={yearMonth} className="border-border-subtle">
-                          <TableCell className="font-medium text-foreground text-sm">
-                            {yearMonth.replace('-', '.')}
-                          </TableCell>
-                          <TableCell className="text-foreground-muted text-sm">
-                            {item.investment_days && item.investment_days.length > 0
-                              ? [...item.investment_days].sort((a, b) => a - b).map((d) => {
-                                  const [y, m] = yearMonth.split('-')
-                                  return `${y}.${m}.${String(d).padStart(2, '0')}`
-                                }).join(', ')
-                              : '-'}
-                          </TableCell>
-                          <TableCell className="text-foreground-muted text-sm">
-                            {formatCurrency(item.monthly_amount)}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {monthCompleted ? (
-                              <span className="text-green-600 font-medium" title="해당 월 납입 완료됨">✓ 완료됨</span>
-                            ) : (
-                              <span className="text-red-500 font-medium" title="해당 월 납입 미완료">✗ 미완료</span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-                {hasMorePaymentHistory && (
-                  <button
-                    type="button"
-                    onClick={loadMore}
-                    className="mt-3 w-full py-2.5 text-sm font-medium text-foreground-muted bg-surface-hover hover:bg-secondary rounded-lg transition-colors"
-                  >
-                    이어서 보기
-                  </button>
-                )}
-              </section>
-            )}
+            <PaymentHistorySection
+              item={item}
+              paymentHistory={paymentHistory}
+              hasMorePaymentHistory={hasMorePaymentHistory}
+              loadMore={loadMore}
+              historyRef={historyRef}
+            />
+          )}
           </div>
 
         {/* 하단 버튼 - 편집 모드에서만 */}
