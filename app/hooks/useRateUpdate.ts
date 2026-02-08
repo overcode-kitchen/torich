@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { apiClient } from '@/lib/api-client'
 
 type CheckResponse = {
   needsUpdate?: boolean
@@ -61,8 +62,7 @@ export const useRateUpdate = (userId?: string, options?: UseRateUpdateOptions): 
     if (!userId) return false
 
     try {
-      const checkResponse: Response = await fetch(`/api/update-user-rates?userId=${encodeURIComponent(userId)}`)
-      const checkData: CheckResponse = (await checkResponse.json()) as CheckResponse
+      const checkData: CheckResponse = await apiClient(`/api/update-user-rates?userId=${encodeURIComponent(userId)}`)
 
       if (!checkData.needsUpdate) {
         return false
@@ -70,12 +70,10 @@ export const useRateUpdate = (userId?: string, options?: UseRateUpdateOptions): 
 
       setIsUpdating(true)
 
-      const updateResponse: Response = await fetch('/api/update-user-rates', {
+      const updateData: UpdateResponse = await apiClient('/api/update-user-rates', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId }),
       })
-      const updateData: UpdateResponse = (await updateResponse.json()) as UpdateResponse
 
       const updated: boolean = Boolean(updateData.success && updateData.updated)
 
