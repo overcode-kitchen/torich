@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
+import { apiClient } from '@/lib/api-client'
 
 export interface SearchResult {
   symbol: string
@@ -90,10 +91,9 @@ export function useStockSearch(stockName: string, isManualInput: boolean): UseSt
           setIsSearching(true)
           setShowDropdown(false)
 
-          const response: Response = await fetch(
+          const data: SearchApiResponse = await apiClient(
             `/api/search?query=${encodeURIComponent(query)}&market=${market}`,
           )
-          const data: SearchApiResponse = (await response.json()) as SearchApiResponse
 
           const results: SearchResult[] = Array.isArray(data.stocks) ? data.stocks : []
           setSearchResults(results)
@@ -137,12 +137,11 @@ export function useStockSearch(stockName: string, isManualInput: boolean): UseSt
       setIsRateLoading(true)
       setRateFetchFailed(false)
 
-      const response: Response = await fetch(`/api/stock?symbol=${encodeURIComponent(stock.symbol)}`)
-      const data: StockApiResponse = (await response.json()) as StockApiResponse
+      const data: StockApiResponse = await apiClient(`/api/stock?symbol=${encodeURIComponent(stock.symbol)}`)
 
       const averageRate: number | undefined = typeof data.averageRate === 'number' ? data.averageRate : undefined
 
-      if (response.ok && averageRate !== undefined) {
+      if (averageRate !== undefined) {
         const detail: StockDetail = {
           symbol: typeof data.symbol === 'string' ? data.symbol : stock.symbol,
           name: typeof data.name === 'string' ? data.name : stock.name,
