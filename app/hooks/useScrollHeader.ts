@@ -1,8 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
-export function useScrollHeader() {
+export function useScrollHeader(titleRef: React.RefObject<HTMLElement | HTMLDivElement | null>) {
   const [showStickyTitle, setShowStickyTitle] = useState(false);
-  const titleRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!titleRef.current) return;
@@ -22,10 +21,9 @@ export function useScrollHeader() {
     return () => {
       observer.disconnect();
     };
-  }, []);
+  }, [titleRef]);
 
   return {
     showStickyTitle,
-    titleRef,
   };
 }
