@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import Image from 'next/image'
 import { formatCurrency } from '@/lib/utils'
 import { addDays } from 'date-fns'
@@ -15,8 +15,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import type { DateRange } from 'react-day-picker'
+import { usePaymentCompletion } from '@/app/hooks/usePaymentCompletion'
+import type { PaymentEvent } from '@/app/utils/stats'
 
-const STORAGE_PREFIX = 'torich_completed_'
 
 const PRESET_OPTIONS = [
   { label: '오늘', days: 1 },
@@ -26,30 +27,6 @@ const PRESET_OPTIONS = [
   { label: '한달', days: 30 },
   { label: '1년', days: 365 },
 ] as const
-
-function getCompletedKey(investmentId: string, year: number, month: number, day: number): string {
-  const yearMonth = `${year}-${String(month).padStart(2, '0')}`
-  return `${STORAGE_PREFIX}${investmentId}_${yearMonth}_${day}`
-}
-
-function isPaymentCompleted(investmentId: string, date: Date, dayOfMonth: number): boolean {
-  if (typeof window === 'undefined') return false
-  const key = getCompletedKey(investmentId, date.getFullYear(), date.getMonth() + 1, dayOfMonth)
-  const val = localStorage.getItem(key)
-  return !!val
-}
-
-function setPaymentCompleted(investmentId: string, date: Date, dayOfMonth: number): void {
-  if (typeof window === 'undefined') return
-  const key = getCompletedKey(investmentId, date.getFullYear(), date.getMonth() + 1, dayOfMonth)
-  localStorage.setItem(key, new Date().toISOString())
-}
-
-function clearPaymentCompleted(investmentId: string, date: Date, dayOfMonth: number): void {
-  if (typeof window === 'undefined') return
-  const key = getCompletedKey(investmentId, date.getFullYear(), date.getMonth() + 1, dayOfMonth)
-  localStorage.removeItem(key)
-}
 
 interface UpcomingItem {
   investment: Investment
@@ -61,28 +38,16 @@ interface UpcomingInvestmentsProps {
   records: Investment[]
 }
 
-const TOAST_DURATION_MS = 5000
 
 export default function UpcomingInvestments({ records }: UpcomingInvestmentsProps) {
-  const [completedIds, setCompletedIds] = useState<Set<string>>(() => new Set())
   const [selectedPreset, setSelectedPreset] = useState<'preset' | 'custom'>('preset')
   const [selectedDays, setSelectedDays] = useState(7)
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(() => {
     const t = new Date()
     return { from: t, to: addDays(t, 6) }
   })
-  const [pendingUndo, setPendingUndo] = useState<{
-    investmentId: string
-    date: Date
-    dayOfMonth: number
-  } | null>(null)
-  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    return () => {
-      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
-    }
-  }, [])
+  
+  const { handleComplete, handleUndo, isEventCompleted, pendingUndo } = usePaymentCompletion()
 
   const items = useMemo(() => {
     if (selectedPreset === 'custom' && customDateRange?.from && customDateRange?.to) {
@@ -100,46 +65,21 @@ export default function UpcomingInvestments({ records }: UpcomingInvestmentsProp
     })
   }, [records, selectedPreset, selectedDays, customDateRange])
 
-  const pendingUndoRef = useRef(pendingUndo)
-  pendingUndoRef.current = pendingUndo
-
-  const handleUndo = useCallback(() => {
-    const p = pendingUndoRef.current
-    if (!p) return
-    clearPaymentCompleted(p.investmentId, p.date, p.dayOfMonth)
-    const key = `${p.investmentId}_${p.date.getTime()}_${p.dayOfMonth}`
-    setCompletedIds((prev) => {
-      const next = new Set(prev)
-      next.delete(key)
-      return next
-    })
-    setPendingUndo(null)
-    if (toastTimeoutRef.current) {
-      clearTimeout(toastTimeoutRef.current)
-      toastTimeoutRef.current = null
-    }
-  }, [])
-
-  const toggleComplete = useCallback((investmentId: string, date: Date, dayOfMonth: number) => {
-    setPaymentCompleted(investmentId, date, dayOfMonth)
-    const key = `${investmentId}_${date.getTime()}_${dayOfMonth}`
-    setCompletedIds((prev) => new Set(prev).add(key))
-
-    setPendingUndo({ investmentId, date, dayOfMonth })
-    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
-    toastTimeoutRef.current = setTimeout(() => {
-      setPendingUndo(null)
-      toastTimeoutRef.current = null
-    }, TOAST_DURATION_MS)
-  }, [])
 
   const visibleItems = useMemo(() => {
     return items.filter((item) => {
-      const key = `${item.investment.id}_${item.paymentDate.getTime()}_${item.dayOfMonth}`
-      if (completedIds.has(key)) return false
-      return !isPaymentCompleted(item.investment.id, item.paymentDate, item.dayOfMonth)
+      const event: PaymentEvent = {
+        investmentId: item.investment.id,
+        year: item.paymentDate.getFullYear(),
+        month: item.paymentDate.getMonth() + 1,
+        day: item.dayOfMonth,
+        yearMonth: `${item.paymentDate.getFullYear()}-${String(item.paymentDate.getMonth() + 1).padStart(2, '0')}`,
+        monthlyAmount: item.investment.monthly_amount,
+        title: item.investment.title
+      }
+      return !isEventCompleted(event)
     })
-  }, [items, completedIds])
+  }, [items, isEventCompleted])
 
   const rangeLabel =
     selectedPreset === 'custom' && customDateRange?.from && customDateRange?.to
@@ -231,7 +171,18 @@ export default function UpcomingInvestments({ records }: UpcomingInvestmentsProp
               </span>
               <button
                 type="button"
-                onClick={() => toggleComplete(item.investment.id, item.paymentDate, item.dayOfMonth)}
+                onClick={() => {
+                  const event: PaymentEvent = {
+                    investmentId: item.investment.id,
+                    year: item.paymentDate.getFullYear(),
+                    month: item.paymentDate.getMonth() + 1,
+                    day: item.dayOfMonth,
+                    yearMonth: `${item.paymentDate.getFullYear()}-${String(item.paymentDate.getMonth() + 1).padStart(2, '0')}`,
+                    monthlyAmount: item.investment.monthly_amount,
+                    title: item.investment.title
+                  }
+                  handleComplete(event)
+                }}
                 className="px-3 py-1.5 rounded-lg border border-border text-foreground-muted text-xs font-medium hover:bg-surface-hover hover:border-surface-strong-hover transition-colors"
                 aria-label="납입 완료 체크"
               >
