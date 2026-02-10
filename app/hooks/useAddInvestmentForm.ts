@@ -1,13 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import type { ChangeEvent } from 'react'
+import { useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/utils/supabase/client'
-
-type InputChangeEvent = ChangeEvent<HTMLInputElement>
+import { useAddInvestmentData } from './useAddInvestmentData'
+import { useAddInvestmentCalculations } from './useAddInvestmentCalculations'
+import { useAddInvestmentUI } from './useAddInvestmentUI'
+import { useStockSearch } from './useStockSearch'
+import { useManualInput } from './useManualInput'
+import { useRateEditor } from './useRateEditor'
+import { validateInvestmentForm, validateAndHandleError } from '@/app/utils/validation'
 
 export interface UseAddInvestmentFormReturn {
+  // 기본 폼 상태
   stockName: string
   setStockName: (name: string) => void
   monthlyAmount: string
@@ -17,98 +21,171 @@ export interface UseAddInvestmentFormReturn {
   investmentDays: number[]
   setInvestmentDays: (days: number[]) => void
 
+  // 제출 상태
   isSubmitting: boolean
-  setIsSubmitting: (submitting: boolean) => void
   userId: string | null
 
-  handleAmountChange: (e: InputChangeEvent) => void
+  // 입력 처리
+  handleAmountChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   adjustAmount: (delta: number) => void
-  handlePeriodChange: (e: InputChangeEvent) => void
+  handlePeriodChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   adjustPeriod: (delta: number) => void
+
+  // 주식 검색 관련
+  isSearching: boolean
+  searchResults: any[]
+  showDropdown: boolean
+  setShowDropdown: (show: boolean) => void
+  selectedStock: any
+  setSelectedStock: (stock: any) => void
+  market: 'KR' | 'US'
+  setMarket: (market: 'KR' | 'US') => void
+  annualRate: number
+  setAnnualRate: (rate: number) => void
+  originalSystemRate: number | null
+  setOriginalSystemRate: (rate: number | null) => void
+  isRateLoading: boolean
+  rateFetchFailed: boolean
+  setRateFetchFailed: (failed: boolean) => void
+  handleSelectStock: (stock: any) => Promise<void>
+  resetSearch: () => void
+
+  // 수동 입력 관련
+  isManualModalOpen: boolean
+  setIsManualModalOpen: (open: boolean) => void
+  manualStockName: string
+  setManualStockName: (name: string) => void
+  manualRate: string
+  setManualRate: (rate: string) => void
+  isManualInput: boolean
+  setIsManualInput: (manual: boolean) => void
+  handleManualConfirm: (callbacks: { onConfirm: (name: string, rate: number) => void }) => void
+  closeAndResetManual: () => void
+
+  // 수익률 편집 관련
+  isRateEditing: boolean
+  editingRate: string
+  startEditing: (currentRate: number) => void
+  confirmEdit: (onConfirm: (newRate: number) => void) => void
+  cancelEdit: () => void
+  handleRateChange: (value: string) => void
+
+  // 폼 제출
+  handleSubmit: (e: React.FormEvent) => Promise<void>
+
+  // 유틸리티
+  handleMarketChange: (newMarket: 'KR' | 'US') => void
 }
 
 export function useAddInvestmentForm(): UseAddInvestmentFormReturn {
   const router = useRouter()
 
-  const [stockName, setStockName] = useState<string>('')
-  const [monthlyAmount, setMonthlyAmount] = useState<string>('')
-  const [period, setPeriod] = useState<string>('')
-  const [startDate, setStartDate] = useState<Date>(() => new Date())
-  const [investmentDays, setInvestmentDays] = useState<number[]>([])
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
-  const [userId, setUserId] = useState<string | null>(null)
+  // 기존 훅들 사용
+  const stockSearch = useStockSearch('', false)
+  const manualInput = useManualInput()
+  const rateEditor = useRateEditor()
+  
+  // 새로운 분리된 훅들
+  const data = useAddInvestmentData()
+  const ui = useAddInvestmentUI({
+    stockSearch,
+    manualInput,
+    rateEditor,
+  })
+  
+  const calculations = useAddInvestmentCalculations({
+    monthlyAmount: ui.monthlyAmount,
+    setMonthlyAmount: ui.setMonthlyAmount,
+    period: ui.period,
+    setPeriod: ui.setPeriod,
+  })
 
-  useEffect((): (() => void) => {
-    const startTime: number = Date.now()
-    return (): void => {
-      const endTime: number = Date.now()
-      const _timeSpent: number = Math.round((endTime - startTime) / 1000)
-    }
-  }, [])
+  // 주식 검색 훅에 stockName 전달
+  const updatedStockSearch = useStockSearch(ui.stockName, manualInput.isManualInput)
 
-  useEffect((): void => {
-    const getUser = async (): Promise<void> => {
-      const supabase = createClient()
-      const { data } = await supabase.auth.getUser()
-      if (data.user) {
-        setUserId(data.user.id)
-      } else {
-        router.push('/login')
-      }
-    }
+  // 폼 제출 처리
+  const handleSubmit = useCallback(async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault()
 
-    void getUser()
-  }, [router])
+    // 유효성 검사
+    const validation = validateInvestmentForm({
+      stockName: ui.stockName,
+      monthlyAmount: ui.monthlyAmount,
+      period: ui.period,
+      userId: data.userId,
+      investmentDays: ui.investmentDays,
+    })
 
-  const handleAmountChange = (e: InputChangeEvent): void => {
-    const value: string = e.target.value.replace(/[^0-9]/g, '')
+    const isValid = validateAndHandleError(
+      validation,
+      (message) => alert(message),
+      () => router.push('/login')
+    )
 
-    if (value === '') {
-      setMonthlyAmount('')
-      return
-    }
+    if (!isValid) return
 
-    const formatted: string = parseInt(value).toLocaleString('ko-KR')
-    setMonthlyAmount(formatted)
-  }
-
-  const adjustAmount = (delta: number): void => {
-    const currentValue: number = monthlyAmount ? parseInt(monthlyAmount.replace(/,/g, '')) : 0
-    const newValue: number = Math.max(0, currentValue + delta)
-
-    if (newValue === 0) {
-      setMonthlyAmount('')
-    } else {
-      setMonthlyAmount(newValue.toLocaleString('ko-KR'))
-    }
-  }
-
-  const handlePeriodChange = (e: InputChangeEvent): void => {
-    const value: string = e.target.value.replace(/[^0-9]/g, '')
-    setPeriod(value)
-  }
-
-  const adjustPeriod = (delta: number): void => {
-    const currentValue: number = period ? parseInt(period) : 0
-    const newValue: number = Math.max(1, currentValue + delta)
-    setPeriod(String(newValue))
-  }
+    // 데이터 제출
+    await data.handleSubmit({
+      stockName: ui.stockName,
+      monthlyAmount: ui.monthlyAmount,
+      period: ui.period,
+      startDate: ui.startDate,
+      investmentDays: ui.investmentDays,
+      annualRate: updatedStockSearch.annualRate,
+      isManualInput: manualInput.isManualInput,
+      originalSystemRate: updatedStockSearch.originalSystemRate,
+      selectedStock: updatedStockSearch.selectedStock,
+    })
+  }, [ui, data, updatedStockSearch, manualInput.isManualInput, router])
 
   return {
-    stockName,
-    setStockName,
-    monthlyAmount,
-    period,
-    startDate,
-    setStartDate,
-    investmentDays,
-    setInvestmentDays,
-    isSubmitting,
-    setIsSubmitting,
-    userId,
-    handleAmountChange,
-    adjustAmount,
-    handlePeriodChange,
-    adjustPeriod,
+    // 기본 폼 상태
+    stockName: ui.stockName,
+    setStockName: ui.setStockName,
+    monthlyAmount: ui.monthlyAmount,
+    period: ui.period,
+    startDate: ui.startDate,
+    setStartDate: ui.setStartDate,
+    investmentDays: ui.investmentDays,
+    setInvestmentDays: ui.setInvestmentDays,
+
+    // 제출 상태
+    isSubmitting: data.isSubmitting,
+    userId: data.userId,
+
+    // 입력 처리
+    handleAmountChange: calculations.handleAmountChange,
+    adjustAmount: calculations.adjustAmount,
+    handlePeriodChange: calculations.handlePeriodChange,
+    adjustPeriod: calculations.adjustPeriod,
+
+    // 주식 검색 관련 (업데이트된 훅 사용)
+    ...updatedStockSearch,
+
+    // 수동 입력 관련
+    isManualModalOpen: manualInput.isManualModalOpen,
+    setIsManualModalOpen: manualInput.setIsManualModalOpen,
+    manualStockName: manualInput.manualStockName,
+    setManualStockName: manualInput.setManualStockName,
+    manualRate: manualInput.manualRate,
+    setManualRate: manualInput.setManualRate,
+    isManualInput: manualInput.isManualInput,
+    setIsManualInput: manualInput.setIsManualInput,
+    handleManualConfirm: manualInput.handleManualConfirm,
+    closeAndResetManual: manualInput.closeAndReset,
+
+    // 수익률 편집 관련
+    isRateEditing: rateEditor.isRateEditing,
+    editingRate: rateEditor.editingRate,
+    startEditing: rateEditor.startEditing,
+    confirmEdit: rateEditor.confirmEdit,
+    cancelEdit: rateEditor.cancelEdit,
+    handleRateChange: rateEditor.handleRateChange,
+
+    // 폼 제출
+    handleSubmit,
+
+    // 유틸리티
+    handleMarketChange: ui.handleMarketChange,
   }
 }

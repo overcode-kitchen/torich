@@ -19,7 +19,7 @@ export function validateInvestmentForm(data: InvestmentFormData): ValidationResu
     }
   }
 
-  if (!data.monthlyAmount || parseInt(data.monthlyAmount) <= 0) {
+  if (!data.monthlyAmount || parseInt(data.monthlyAmount.replace(/,/g, '')) <= 0) {
     return {
       isValid: false,
       errorMessage: '월 투자액을 입력해주세요.'
@@ -67,4 +67,23 @@ export function validateManualInput(stockName: string, rate: string): Validation
   }
 
   return { isValid: true }
+}
+
+// 새로운 통합 유효성 검사 함수
+export function validateAndHandleError(
+  validation: ValidationResult,
+  onError?: (message: string) => void,
+  onLoginRequired?: () => void
+): boolean {
+  if (!validation.isValid) {
+    const message = validation.errorMessage || '유효성 검사에 실패했습니다.'
+    onError?.(message)
+    
+    if (message.includes('로그인')) {
+      onLoginRequired?.()
+    }
+    
+    return false
+  }
+  return true
 }
