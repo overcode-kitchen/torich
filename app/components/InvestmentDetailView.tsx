@@ -1,15 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { Investment } from '@/app/types/investment'
 import { InvestmentTabProvider, useInvestmentTabContext } from '@/app/contexts/InvestmentTabContext'
-import { useInvestmentData } from '@/app/hooks/useInvestmentData'
-import { useInvestmentActions } from '@/app/hooks/useInvestmentActions'
 import { useScrollHeader } from '@/app/hooks/useScrollHeader'
+import { useInvestmentDetailUI } from '@/app/hooks/useInvestmentDetailUI'
+import { useInvestmentDetailHandlers } from '@/app/hooks/useInvestmentDetailHandlers'
 import { InvestmentView } from '@/app/components/InvestmentView'
 import { InvestmentEditView } from '@/app/components/InvestmentEditView'
 import DeleteConfirmModal from '@/app/components/DeleteConfirmModal'
-import { formatCurrency } from '@/lib/utils'
 import type { RateSuggestion } from '@/app/components/InvestmentEditSheet'
 
 interface InvestmentDetailViewProps {
@@ -40,22 +39,34 @@ function InternalInvestmentDetailView({
 
   const { showStickyTitle } = useScrollHeader(titleRef)
 
-  // UI 상태
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [isEditMode, setIsEditMode] = useState(false)
-  const [isDaysPickerOpen, setIsDaysPickerOpen] = useState(false)
-
-  // 데이터 훅
-  const investmentData = useInvestmentData({
-    item,
+  // UI 상태 훅
+  const {
+    showDeleteModal,
+    setShowDeleteModal,
     isEditMode,
-    calculateFutureValue,
-  })
+    setIsEditMode,
+    isDaysPickerOpen,
+    setIsDaysPickerOpen,
+  } = useInvestmentDetailUI()
 
-  // API 액션 훅
-  const { isDeleting, isUpdating, handleUpdate, handleDelete } = useInvestmentActions({
+  // 핸들러 훅
+  const {
+    investmentData,
+    isDeleting,
+    isUpdating,
+    handleSave,
+    handleCancel,
+    handleEdit,
+    handleDeleteClick,
+    handleDelete,
+  } = useInvestmentDetailHandlers({
+    item,
     onUpdate,
     onDelete,
+    calculateFutureValue,
+    isEditMode,
+    setIsEditMode,
+    setIsDaysPickerOpen,
   })
 
   // 수정 모드 진입 시 초기화
@@ -66,38 +77,8 @@ function InternalInvestmentDetailView({
     }
   }, [isEditMode, item, investmentData.initializeFromItem])
 
-  // 저장 핸들러
-  const handleSave = async () => {
-    const monthlyAmountInWon = parseInt(investmentData.editMonthlyAmount.replace(/,/g, '') || '0') * 10000
-    const periodYears = parseInt(investmentData.editPeriodYears || '0')
-    const annualRate = parseFloat(investmentData.editAnnualRate || '0')
-
-    if (monthlyAmountInWon <= 0 || periodYears <= 0 || annualRate <= 0) {
-      alert('모든 값을 올바르게 입력해주세요.')
-      return
-    }
-
-    await handleUpdate({
-      monthly_amount: monthlyAmountInWon,
-      period_years: periodYears,
-      annual_rate: annualRate,
-      investment_days: investmentData.editInvestmentDays.length > 0 ? investmentData.editInvestmentDays : undefined,
-    })
-    setIsEditMode(false)
-  }
-
-  // 취소 핸들러
-  const handleCancel = () => {
-    setIsEditMode(false)
-  }
-
-  // 수정 모드 진입
-  const handleEdit = () => {
-    setIsEditMode(true)
-  }
-
-  // 삭제 모달 열기
-  const handleDeleteClick = () => {
+  // 삭제 모달 열기 핸들러
+  const handleDeleteModalOpen = () => {
     setShowDeleteModal(true)
   }
 
@@ -153,7 +134,7 @@ function InternalInvestmentDetailView({
             item={item}
             onBack={onBack}
             onEdit={handleEdit}
-            onDelete={handleDeleteClick}
+            onDelete={handleDeleteModalOpen}
             notificationOn={investmentData.notificationOn}
             toggleNotification={investmentData.toggleNotification}
             progress={investmentData.progress}
