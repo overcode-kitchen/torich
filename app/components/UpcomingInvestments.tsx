@@ -62,10 +62,12 @@ interface UpcomingInvestmentsProps {
 }
 
 const TOAST_DURATION_MS = 5000
+const INITIAL_VISIBLE_COUNT = 5
 
 export default function UpcomingInvestments({ records }: UpcomingInvestmentsProps) {
   const [completedIds, setCompletedIds] = useState<Set<string>>(() => new Set())
   const [selectedPreset, setSelectedPreset] = useState<'preset' | 'custom'>('preset')
+  const [expanded, setExpanded] = useState(false)
   const [selectedDays, setSelectedDays] = useState(7)
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(() => {
     const t = new Date()
@@ -141,6 +143,10 @@ export default function UpcomingInvestments({ records }: UpcomingInvestmentsProp
     })
   }, [items, completedIds])
 
+  const displayItems = expanded ? visibleItems : visibleItems.slice(0, INITIAL_VISIBLE_COUNT)
+  const hasMore = visibleItems.length > INITIAL_VISIBLE_COUNT
+  const remainingCount = visibleItems.length - INITIAL_VISIBLE_COUNT
+
   const rangeLabel =
     selectedPreset === 'custom' && customDateRange?.from && customDateRange?.to
       ? `${customDateRange.from.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} - ${customDateRange.to.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}`
@@ -214,33 +220,45 @@ export default function UpcomingInvestments({ records }: UpcomingInvestmentsProp
           {rangeLabel} 이내 예정된 투자가 없어요
         </p>
       ) : (
-      <div className="space-y-2">
-        {visibleItems.map((item) => (
-          <div
-            key={`${item.investment.id}-${item.paymentDate.getTime()}-${item.dayOfMonth}`}
-            className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-surface border border-border-subtle"
-          >
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">
-                {formatPaymentDateShort(item.paymentDate)} · {item.investment.title}
-              </p>
-            </div>
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <span className="text-sm font-bold text-foreground">
-                {formatCurrency(item.investment.monthly_amount)}
-              </span>
-              <button
-                type="button"
-                onClick={() => toggleComplete(item.investment.id, item.paymentDate, item.dayOfMonth)}
-                className="px-3 py-1.5 rounded-lg border border-border text-foreground-muted text-xs font-medium hover:bg-surface-hover hover:border-surface-strong-hover transition-colors"
-                aria-label="납입 완료 체크"
+        <>
+          <div className="space-y-2">
+            {displayItems.map((item) => (
+              <div
+                key={`${item.investment.id}-${item.paymentDate.getTime()}-${item.dayOfMonth}`}
+                className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-surface border border-border-subtle"
               >
-                완료하기
-              </button>
-            </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {formatPaymentDateShort(item.paymentDate)} · {item.investment.title}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <span className="text-sm font-bold text-foreground">
+                    {formatCurrency(item.investment.monthly_amount)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => toggleComplete(item.investment.id, item.paymentDate, item.dayOfMonth)}
+                    className="px-3 py-1.5 rounded-lg border border-border text-foreground-muted text-xs font-medium hover:bg-surface-hover hover:border-surface-strong-hover transition-colors"
+                    aria-label="납입 완료 체크"
+                  >
+                    완료하기
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+          {hasMore && (
+            <button
+              type="button"
+              onClick={() => setExpanded((prev) => !prev)}
+              className="w-full mt-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-surface-hover rounded-xl transition-colors"
+              aria-expanded={expanded}
+            >
+              {expanded ? '접기' : `${remainingCount}건 더 보기`}
+            </button>
+          )}
+        </>
       )}
 
       {/* 되돌리기 토스트 */}
