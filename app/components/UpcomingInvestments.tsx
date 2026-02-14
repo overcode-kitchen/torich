@@ -3,8 +3,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import { formatCurrency } from '@/lib/utils'
-import { addDays } from 'date-fns'
-import { formatPaymentDateShort, getUpcomingPayments, getUpcomingPaymentsInRange } from '@/app/utils/date'
 import type { Investment } from '@/app/types/investment'
 import {
   DropdownMenu,
@@ -15,9 +13,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import type { DateRange } from 'react-day-picker'
+import { addDays } from 'date-fns'
+import { formatPaymentDateShort, getUpcomingPayments, getUpcomingPaymentsInRange } from '@/app/utils/date'
 
 const STORAGE_PREFIX = 'torich_completed_'
-
 const PRESET_OPTIONS = [
   { label: '오늘', days: 1 },
   { label: '3일', days: 3 },
@@ -31,30 +30,19 @@ function getCompletedKey(investmentId: string, year: number, month: number, day:
   const yearMonth = `${year}-${String(month).padStart(2, '0')}`
   return `${STORAGE_PREFIX}${investmentId}_${yearMonth}_${day}`
 }
-
 function isPaymentCompleted(investmentId: string, date: Date, dayOfMonth: number): boolean {
   if (typeof window === 'undefined') return false
   const key = getCompletedKey(investmentId, date.getFullYear(), date.getMonth() + 1, dayOfMonth)
-  const val = localStorage.getItem(key)
-  return !!val
+  return !!localStorage.getItem(key)
 }
-
 function setPaymentCompleted(investmentId: string, date: Date, dayOfMonth: number): void {
   if (typeof window === 'undefined') return
   const key = getCompletedKey(investmentId, date.getFullYear(), date.getMonth() + 1, dayOfMonth)
   localStorage.setItem(key, new Date().toISOString())
 }
-
 function clearPaymentCompleted(investmentId: string, date: Date, dayOfMonth: number): void {
   if (typeof window === 'undefined') return
-  const key = getCompletedKey(investmentId, date.getFullYear(), date.getMonth() + 1, dayOfMonth)
-  localStorage.removeItem(key)
-}
-
-interface UpcomingItem {
-  investment: Investment
-  paymentDate: Date
-  dayOfMonth: number
+  localStorage.removeItem(getCompletedKey(investmentId, date.getFullYear(), date.getMonth() + 1, dayOfMonth))
 }
 
 interface UpcomingInvestmentsProps {
@@ -94,8 +82,7 @@ export default function UpcomingInvestments({ records }: UpcomingInvestmentsProp
         return { investment: inv, paymentDate: p.paymentDate, dayOfMonth: p.dayOfMonth }
       })
     }
-    const effectiveDays = selectedDays
-    const payments = getUpcomingPayments(records, effectiveDays)
+    const payments = getUpcomingPayments(records, selectedDays)
     return payments.map((p) => {
       const inv = records.find((r) => r.id === p.id)!
       return { investment: inv, paymentDate: p.paymentDate, dayOfMonth: p.dayOfMonth }
@@ -126,7 +113,6 @@ export default function UpcomingInvestments({ records }: UpcomingInvestmentsProp
     setPaymentCompleted(investmentId, date, dayOfMonth)
     const key = `${investmentId}_${date.getTime()}_${dayOfMonth}`
     setCompletedIds((prev) => new Set(prev).add(key))
-
     setPendingUndo({ investmentId, date, dayOfMonth })
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
     toastTimeoutRef.current = setTimeout(() => {
