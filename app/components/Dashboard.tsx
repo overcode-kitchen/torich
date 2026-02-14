@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -19,6 +20,8 @@ import { formatCurrency } from '@/lib/utils'
 type FilterStatus = 'ALL' | 'ACTIVE' | 'ENDED'
 
 type SortBy = 'TOTAL_VALUE' | 'MONTHLY_PAYMENT' | 'NAME' | 'NEXT_PAYMENT'
+
+const INITIAL_LIST_COUNT = 10
 
 export interface DashboardProps {
   records: Investment[]
@@ -68,6 +71,14 @@ export default function Dashboard({
   calculateFutureValue,
 }: DashboardProps) {
   const router = useRouter()
+  const [listExpanded, setListExpanded] = useState(false)
+  const displayRecords = listExpanded ? filteredRecords : filteredRecords.slice(0, INITIAL_LIST_COUNT)
+  const hasMoreList = filteredRecords.length > INITIAL_LIST_COUNT
+  const remainingListCount = filteredRecords.length - INITIAL_LIST_COUNT
+
+  useEffect(() => {
+    setListExpanded(false)
+  }, [filterStatus, sortBy])
 
   return (
     <main className="min-h-screen bg-surface">
@@ -86,7 +97,7 @@ export default function Dashboard({
         <h1 className="text-xl font-semibold tracking-tight text-foreground">티끌모아 태산</h1>
       </header>
 
-      <div className="max-w-md mx-auto px-4 py-4 space-y-4">
+      <div className="max-w-md md:max-w-lg lg:max-w-2xl mx-auto px-4 py-4 space-y-4">
         {/* 다가오는 투자 섹션 */}
         {activeRecords.length > 0 && <UpcomingInvestments records={activeRecords} />}
 
@@ -292,14 +303,26 @@ export default function Dashboard({
 
             <div>
               {filteredRecords.length > 0 ? (
-                filteredRecords.map((item: Investment) => (
-                  <InvestmentItem
-                    key={item.id}
-                    item={item}
-                    onClick={() => onItemClick(item)}
-                    calculateFutureValue={calculateFutureValue}
-                  />
-                ))
+                <>
+                  {displayRecords.map((item: Investment) => (
+                    <InvestmentItem
+                      key={item.id}
+                      item={item}
+                      onClick={() => onItemClick(item)}
+                      calculateFutureValue={calculateFutureValue}
+                    />
+                  ))}
+                  {hasMoreList && (
+                    <button
+                      type="button"
+                      onClick={() => setListExpanded((prev) => !prev)}
+                      className="w-full py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-surface-hover/50 transition-colors border-t border-border-subtle-lighter -mb-px"
+                      aria-expanded={listExpanded}
+                    >
+                      {listExpanded ? '접기' : `${remainingListCount}개 더 보기`}
+                    </button>
+                  )}
+                </>
               ) : (
                 <div className="py-8 text-center">
                   <p className="text-foreground-subtle text-sm">
