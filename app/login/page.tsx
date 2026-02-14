@@ -1,72 +1,21 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { CircleNotch, ArrowLeft } from '@phosphor-icons/react'
 import { useLoginAuth } from '@/app/hooks/useLoginAuth'
-import GoogleLogo from '@/app/components/GoogleLogo'
+import LoginView from '@/app/components/LoginSections/LoginView'
 
 export default function LoginPage() {
   const router = useRouter()
   const { isLoading, handleGoogleLogin, handleTestLogin } = useLoginAuth()
 
   return (
-    <main className="min-h-screen bg-surface flex items-center justify-center px-4 relative">
-      {/* 뒤로가기 버튼 */}
-      <button
-        onClick={() => router.back()}
-        className="absolute top-4 left-4 p-2 text-foreground-soft hover:text-foreground transition-colors"
-        aria-label="뒤로가기"
-      >
-        <ArrowLeft className="w-6 h-6" />
-      </button>
-
-      <div className="w-full max-w-xs">
-        {/* 타이틀 */}
-        <h1 className="text-3xl font-bold text-foreground text-center mb-12">
-          티끌모아 태산
-        </h1>
-
-        {/* 구글 로그인 버튼 */}
-        <button
-          onClick={handleGoogleLogin}
-          disabled={isLoading}
-          className="w-full bg-card text-foreground-soft font-medium rounded-xl shadow-md py-4 px-6 flex items-center justify-center gap-3 hover:bg-surface-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isLoading ? (
-            <>
-              <CircleNotch className="w-5 h-5 animate-spin" />
-              <span>연결 중...</span>
-            </>
-          ) : (
-            <>
-              <GoogleLogo />
-              <span>Google로 계속하기</span>
-            </>
-          )}
-        </button>
-
-        {/* 테스트 로그인 버튼 (개발 환경에서만 표시) */}
-        {process.env.NODE_ENV === 'development' && (
-          <button
-            onClick={handleTestLogin}
-            disabled={isLoading}
-            className="w-full bg-secondary text-foreground-soft font-medium rounded-xl py-4 px-6 flex items-center justify-center gap-2 hover:bg-surface-strong transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-3"
-          >
-            {isLoading ? (
-              <>
-                <CircleNotch className="w-5 h-5 animate-spin" />
-                <span>로그인 중...</span>
-              </>
-            ) : (
-              <>
-                <span>🐿️</span>
-                <span>테스트 계정으로 입장</span>
-              </>
-            )}
-          </button>
-        )}
-      </div>
-    </main>
+    <LoginView
+      isLoading={isLoading}
+      onGoogleLogin={handleGoogleLogin}
+      onTestLogin={handleTestLogin}
+      onBack={() => router.back()}
+      showTestLogin={process.env.NODE_ENV === 'development'}
+    />
   )
 }
 
