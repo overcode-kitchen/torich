@@ -1,149 +1,99 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { formatCurrency } from '@/lib/utils'
-import {
-  ArrowLeft,
-  Pencil,
-  Trash,
-  Check,
-  X,
-  DotsThreeVertical,
-  Bell,
-  BellSlash,
-  CalendarBlank,
-} from '@phosphor-icons/react'
-import { Investment, getStartDate, formatInvestmentDays } from '@/app/types/investment'
-import InvestmentDaysPickerSheet from '@/app/components/InvestmentDaysPickerSheet'
-import InvestmentEditSheet, { type RateSuggestion } from '@/app/components/InvestmentEditSheet'
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from '@/components/ui/dropdown-menu'
-import { InputWithUnit } from '@/components/ui/input-with-unit'
-import { 
-  calculateEndDate, 
-  calculateProgress,
-  formatFullDate,
-  formatNextPaymentDate,
-  getNextPaymentDate,
-  isCompleted
-} from '@/app/utils/date'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { getPaymentHistoryFromStart } from '@/app/utils/payment-history'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { useNotificationToggle } from '@/app/hooks/useNotificationToggle'
-import { useInvestmentDetailEdit } from '@/app/hooks/useInvestmentDetailEdit'
-import { useInvestmentTabs } from '@/app/hooks/useInvestmentTabs'
-import { usePaymentPagination } from '@/app/hooks/usePaymentPagination'
+import { useEffect } from 'react'
+import { ArrowLeft, Bell, BellSlash, CalendarBlank, DotsThreeVertical } from '@phosphor-icons/react'
+import { Investment } from '@/app/types/investment'
+import { InvestmentTabProvider, useInvestmentTabContext } from '@/app/contexts/InvestmentTabContext'
 import { useScrollHeader } from '@/app/hooks/useScrollHeader'
-import { useInvestmentCalculations } from '@/app/hooks/useInvestmentCalculations'
+import { useInvestmentDetailUI } from '@/app/hooks/useInvestmentDetailUI'
+import { useInvestmentDetailHandlers } from '@/app/hooks/useInvestmentDetailHandlers'
+import DeleteConfirmModal from '@/app/components/DeleteConfirmModal'
 import { ProgressSection } from '@/app/components/InvestmentDetailSections/ProgressSection'
 import { InfoSection } from '@/app/components/InvestmentDetailSections/InfoSection'
 import { PaymentHistorySection } from '@/app/components/InvestmentDetailSections/PaymentHistorySection'
-import DeleteConfirmModal from '@/app/components/DeleteConfirmModal'
-
-interface UpdateData {
-  monthly_amount: number
-  period_years: number
-  annual_rate: number
-  investment_days?: number[]
-}
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { formatNextPaymentDate } from '@/app/utils/date'
+import type { RateSuggestion } from '@/app/components/InvestmentEditSheet'
 
 interface InvestmentDetailViewProps {
   item: Investment
   onBack: () => void
-  onUpdate: (data: UpdateData) => Promise<void>
+  onUpdate: (data: { monthly_amount: number; period_years: number; annual_rate: number; investment_days?: number[] }) => Promise<void>
   onDelete: () => Promise<void>
-  isDeleting?: boolean
-  isUpdating?: boolean
   calculateFutureValue: (monthlyAmount: number, T: number, P: number, R: number) => number
 }
 
-export default function InvestmentDetailView({
+function InternalInvestmentDetailView({
   item,
   onBack,
   onUpdate,
   onDelete,
-  isDeleting = false,
-  isUpdating = false,
   calculateFutureValue,
 }: InvestmentDetailViewProps) {
-  // 훅들
+  // Context
   const {
     activeTab,
     scrollContainerRef,
     overviewRef,
     infoRef,
     historyRef,
+    titleRef,
     handleTabClick,
-  } = useInvestmentTabs();
+  } = useInvestmentTabContext()
 
-  const { showStickyTitle, titleRef } = useScrollHeader();
+  const { showStickyTitle } = useScrollHeader(titleRef)
 
-  // 알림 훅
-  const { notificationOn, toggleNotification } = useNotificationToggle(item.id)
-
-  // 수정 폼 훅
+  // UI 상태 훅
   const {
-    editMonthlyAmount, setEditMonthlyAmount,
-    editPeriodYears, setEditPeriodYears,
-    editAnnualRate, setEditAnnualRate,
-    editInvestmentDays, setEditInvestmentDays,
-    isRateManuallyEdited, setIsRateManuallyEdited,
-    handleNumericInput, handleRateInput,
-    initializeFromItem,
-  } = useInvestmentDetailEdit()
-
-  // UI 상태 (컴포넌트에 유지)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [isEditMode, setIsEditMode] = useState(false)
-  const [isDaysPickerOpen, setIsDaysPickerOpen] = useState(false)
-
-  const {
-    startDate,
-    displayMonthlyAmount,
-    displayPeriodYears,
-    displayAnnualRate,
-    endDate,
-    calculatedFutureValue,
-    totalPrincipal,
-    calculatedProfit,
-    progress,
-    completed,
-    nextPaymentDate,
-  } = useInvestmentCalculations({
-    item,
+    showDeleteModal,
+    setShowDeleteModal,
     isEditMode,
-    editMonthlyAmount,
-    editPeriodYears,
-    editAnnualRate,
-    editInvestmentDays,
+    setIsEditMode,
+    isDaysPickerOpen,
+    setIsDaysPickerOpen,
+  } = useInvestmentDetailUI()
+
+  // 핸들러 훅
+  const {
+    investmentData,
+    isDeleting,
+    isUpdating,
+    handleSave,
+    handleCancel,
+    handleEdit,
+    handleDeleteClick,
+    handleDelete,
+  } = useInvestmentDetailHandlers({
+    item,
+    onUpdate,
+    onDelete,
     calculateFutureValue,
-  });
+    isEditMode,
+    setIsEditMode,
+    setIsDaysPickerOpen,
+  })
 
-  const fullPaymentHistory = getPaymentHistoryFromStart(
-    item.id,
-    item.investment_days ?? undefined,
-    item.start_date ?? item.created_at ?? undefined,
-    item.period_years
-  );
+  // 수정 모드 진입 시 초기화
+  useEffect(() => {
+    if (isEditMode) {
+      investmentData.initializeFromItem(item)
+      setIsDaysPickerOpen(false)
+    }
+  }, [isEditMode, item, investmentData.initializeFromItem])
 
-  const { paymentHistory, hasMorePaymentHistory, loadMore } = usePaymentPagination(
-    fullPaymentHistory,
-    item.id
-  );
-  
-  // 원본 수익률 저장 (비교용)
+  // 삭제 모달 열기 핸들러
+  const handleDeleteModalOpen = () => {
+    setShowDeleteModal(true)
+  }
+
+
+  // 공통 props
   const originalRate = item.annual_rate || 10
   const formatRate = (rate: number) => rate.toFixed(2).replace(/\.?0+$/, '')
   const rateSuggestions: RateSuggestion[] = [
@@ -151,42 +101,30 @@ export default function InvestmentDetailView({
   ]
   const isCustomRate = !!item.is_custom_rate
 
-  // 수정 모드 진입 시 초기화 (기존 useEffect 대체)
-  useEffect(() => {
-    if (isEditMode) {
-      initializeFromItem(item)
-      setIsDaysPickerOpen(false)
-    }
-  }, [isEditMode, item, initializeFromItem])
-
-
-
-
-  // 저장
-  const handleSave = async () => {
-    const monthlyAmountInWon = parseInt(editMonthlyAmount.replace(/,/g, '') || '0') * 10000
-    const periodYears = parseInt(editPeriodYears || '0')
-    const annualRate = parseFloat(editAnnualRate || '0')
-
-    if (monthlyAmountInWon <= 0 || periodYears <= 0 || annualRate <= 0) {
-      alert('모든 값을 올바르게 입력해주세요.')
-      return
-    }
-
-    await onUpdate({
-      monthly_amount: monthlyAmountInWon,
-      period_years: periodYears,
-      annual_rate: annualRate,
-      investment_days: editInvestmentDays.length > 0 ? editInvestmentDays : undefined,
-    })
-    setIsEditMode(false)
+  const infoSectionProps = {
+    item,
+    editMonthlyAmount: investmentData.editMonthlyAmount,
+    setEditMonthlyAmount: investmentData.setEditMonthlyAmount,
+    editPeriodYears: investmentData.editPeriodYears,
+    setEditPeriodYears: investmentData.setEditPeriodYears,
+    editAnnualRate: investmentData.editAnnualRate,
+    setEditAnnualRate: investmentData.setEditAnnualRate,
+    editInvestmentDays: investmentData.editInvestmentDays,
+    setEditInvestmentDays: investmentData.setEditInvestmentDays,
+    setIsDaysPickerOpen: setIsDaysPickerOpen,
+    handleNumericInput: investmentData.handleNumericInput,
+    handleRateInput: investmentData.handleRateInput,
+    displayAnnualRate: investmentData.displayAnnualRate,
+    totalPrincipal: investmentData.totalPrincipal,
+    calculatedProfit: investmentData.calculatedProfit,
+    calculatedFutureValue: investmentData.calculatedFutureValue,
+    originalRate,
+    isRateManuallyEdited: investmentData.isRateManuallyEdited,
+    setIsRateManuallyEdited: investmentData.setIsRateManuallyEdited,
+    formatRate,
+    rateSuggestions,
+    isCustomRate,
   }
-
-  // 취소
-  const handleCancel = () => {
-    setIsEditMode(false)
-  }
-
 
   return (
     <div ref={scrollContainerRef} className="fixed inset-0 z-50 bg-background overflow-y-auto">
@@ -345,50 +283,47 @@ export default function InvestmentDetailView({
             setEditAnnualRate={setEditAnnualRate}
             setEditInvestmentDays={setEditInvestmentDays}
             setIsDaysPickerOpen={setIsDaysPickerOpen}
-            handleNumericInput={handleNumericInput}
-            handleRateInput={handleRateInput}
-            displayAnnualRate={displayAnnualRate}
-            totalPrincipal={totalPrincipal}
-            calculatedProfit={calculatedProfit}
-            calculatedFutureValue={calculatedFutureValue}
+            handleNumericInput={investmentData.handleNumericInput}
+            handleRateInput={investmentData.handleRateInput}
+            displayAnnualRate={investmentData.displayAnnualRate}
+            totalPrincipal={investmentData.totalPrincipal}
+            calculatedProfit={investmentData.calculatedProfit}
+            calculatedFutureValue={investmentData.calculatedFutureValue}
             originalRate={originalRate}
-            isRateManuallyEdited={isRateManuallyEdited}
-            setIsRateManuallyEdited={setIsRateManuallyEdited}
+            isRateManuallyEdited={investmentData.isRateManuallyEdited}
+            setIsRateManuallyEdited={investmentData.setIsRateManuallyEdited}
             formatRate={formatRate}
             rateSuggestions={rateSuggestions}
             isCustomRate={isCustomRate}
             infoRef={infoRef}
           />
-
-            {!isEditMode && fullPaymentHistory.length > 0 && (
+          {investmentData.paymentHistory.length > 0 && (
             <PaymentHistorySection
               item={item}
-              paymentHistory={paymentHistory}
-              hasMorePaymentHistory={hasMorePaymentHistory}
-              loadMore={loadMore}
+              paymentHistory={investmentData.paymentHistory}
+              hasMorePaymentHistory={investmentData.hasMorePaymentHistory}
+              loadMore={investmentData.loadMore}
               historyRef={historyRef}
             />
           )}
-          </div>
-
-        {/* 하단 버튼 - 편집 모드에서만 */}
+        </div>
         {isEditMode && (
-          <div className="sticky bottom-0 bg-background pt-4 pb-6 px-6">
+          <div className="sticky bottom-0 bg-background pt-4 pb-6 px-6 -mx-6 border-t border-border-subtle-lighter">
             <div className="flex gap-3">
               <button
+                type="button"
                 onClick={handleCancel}
                 disabled={isUpdating}
                 className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-secondary hover:bg-surface-strong text-foreground-soft font-semibold rounded-xl transition-colors disabled:opacity-50"
               >
-                <X className="w-5 h-5" />
                 취소
               </button>
               <button
+                type="button"
                 onClick={handleSave}
                 disabled={isUpdating}
-                className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl transition-colors disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-primary text-primary-foreground font-semibold rounded-xl transition-colors disabled:opacity-50"
               >
-                <Check className="w-5 h-5" />
                 {isUpdating ? '저장 중...' : '저장'}
               </button>
             </div>
@@ -400,22 +335,18 @@ export default function InvestmentDetailView({
       <DeleteConfirmModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
-        onConfirm={onDelete}
+        onConfirm={handleDelete}
         isDeleting={isDeleting}
       />
-
-      {/* 투자일 선택 바텀 시트 */}
-      {isEditMode && isDaysPickerOpen && (
-        <InvestmentDaysPickerSheet
-          days={editInvestmentDays}
-          onClose={() => setIsDaysPickerOpen(false)}
-          onApply={(days) => {
-            setEditInvestmentDays(days)
-            setIsDaysPickerOpen(false)
-          }}
-        />
-      )}
-
     </div>
+  )
+}
+
+// InvestmentDetailViewWithProvider로 감싸서 내보내기
+export default function InvestmentDetailView(props: InvestmentDetailViewProps) {
+  return (
+    <InvestmentTabProvider>
+      <InternalInvestmentDetailView {...props} />
+    </InvestmentTabProvider>
   )
 }

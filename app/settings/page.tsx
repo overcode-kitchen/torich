@@ -1,11 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
 import { useSettingsAuth } from '@/app/hooks/useSettingsAuth'
 import { useGlobalNotification } from '@/app/hooks/useGlobalNotification'
+import { useSettingsPageUI } from '@/app/hooks/useSettingsPageUI'
 import { CircleNotch } from '@phosphor-icons/react'
-import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { SettingsSection } from '@/app/components/SettingsSection'
 import { ThemeSelector } from '@/app/components/ThemeSelector'
@@ -16,7 +15,7 @@ export default function SettingsPage() {
   const { user, isLoading, isLoggingOut, handleLogout } = useSettingsAuth()
   const { notificationOn, toggleNotification } = useGlobalNotification()
   const { theme, setTheme } = useTheme()
-  const [isBrandStoryOpen, setIsBrandStoryOpen] = useState(false)
+  const { isBrandStoryOpen, openBrandStory, closeBrandStory } = useSettingsPageUI()
 
   if (isLoading) {
     return (
@@ -85,7 +84,7 @@ export default function SettingsPage() {
         <SettingsSection title="브랜드 스토리">
           <button
             type="button"
-            onClick={() => setIsBrandStoryOpen(true)}
+            onClick={openBrandStory}
             className="w-full flex items-center justify-between px-4 py-3 hover:bg-surface-hover transition-colors"
             aria-haspopup="dialog"
             aria-expanded={isBrandStoryOpen}
@@ -101,7 +100,7 @@ export default function SettingsPage() {
 
         <BrandStorySheet
           isOpen={isBrandStoryOpen}
-          onClose={() => setIsBrandStoryOpen(false)}
+          onClose={closeBrandStory}
         />
 
         {/* 앱 정보 */}

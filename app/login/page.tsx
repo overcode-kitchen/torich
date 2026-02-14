@@ -1,84 +1,13 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/utils/supabase/client'
 import { CircleNotch, ArrowLeft } from '@phosphor-icons/react'
+import { useLoginAuth } from '@/app/hooks/useLoginAuth'
+import GoogleLogo from '@/app/components/GoogleLogo'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
-
-  const handleGoogleLogin = async () => {
-    try {
-      setIsLoading(true)
-      
-      const supabase = createClient()
-
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${location.origin}/auth/callback`,
-          queryParams: {
-            access_type: 'offline', // 중요: 리프레시 토큰 및 PKCE 사용 유도
-            prompt: 'consent',
-          },
-          skipBrowserRedirect: false, // 브라우저 리다이렉트 사용
-        },
-      })
-      
-      if (error) throw error
-      
-    } catch (error) {
-      console.error('Login Error:', error)
-      alert('로그인 에러가 발생했습니다. 콘솔을 확인해주세요.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // 테스트 계정 로그인
-  const handleTestLogin = async () => {
-    try {
-      setIsLoading(true)
-      const supabase = createClient()
-      const TEST_EMAIL = 'test@test.com' // 가장 무난한 이메일
-      const TEST_PASSWORD = 'password1234' // 6자리 이상 필수
-
-      // 1. 로그인 시도
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: TEST_EMAIL,
-        password: TEST_PASSWORD,
-      })
-
-      if (!signInError) {
-        // 세션 설정 대기
-        await new Promise(resolve => setTimeout(resolve, 500))
-        // 현재 origin 명시적 사용 (IP 기반 URL 대응)
-        window.location.href = `${window.location.origin}/`
-        return
-      }
-
-      // 2. 실패 시 회원가입 (자동 로그인됨)
-      const { error: signUpError } = await supabase.auth.signUp({
-        email: TEST_EMAIL,
-        password: TEST_PASSWORD,
-      })
-
-      if (signUpError) throw signUpError
-
-      // 세션 설정 대기
-      await new Promise(resolve => setTimeout(resolve, 500))
-      // 현재 origin 명시적 사용 (IP 기반 URL 대응)
-      window.location.href = `${window.location.origin}/`
-
-    } catch (error: any) {
-      console.error('테스트 로그인 실패:', error)
-      alert('테스트 계정 생성 실패: ' + error.message)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const { isLoading, handleGoogleLogin, handleTestLogin } = useLoginAuth()
 
   return (
     <main className="min-h-screen bg-surface flex items-center justify-center px-4 relative">
@@ -110,29 +39,7 @@ export default function LoginPage() {
             </>
           ) : (
             <>
-              {/* Google G 로고 SVG */}
-              <svg
-                className="w-5 h-5"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  fill="#EA4335"
-                />
-              </svg>
+              <GoogleLogo />
               <span>Google로 계속하기</span>
             </>
           )}

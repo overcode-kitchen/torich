@@ -2,22 +2,19 @@
 
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, CircleNotch } from '@phosphor-icons/react'
-import { Button } from '@/components/ui/button'
 import MarketSelectionSection from '@/app/components/AddInvestmentSections/MarketSelectionSection'
 import FormSection from '@/app/components/AddInvestmentSections/FormSection'
 import PreviewSection from '@/app/components/AddInvestmentSections/PreviewSection'
 import InvestmentDaysPickerSheet from '@/app/components/InvestmentDaysPickerSheet'
 import ManualInputModal from '@/app/components/ManualInputModal'
 import RateHelpModal from '@/app/components/RateHelpModal'
-import { useAddInvestmentFormIntegrated } from '@/app/hooks/useAddInvestmentFormIntegrated'
+import { useAddInvestmentForm } from '@/app/hooks/useAddInvestmentForm'
 import { useModalState } from '@/app/hooks/useModalState'
 
 export default function AddInvestmentPage() {
   const router = useRouter()
-  const form = useAddInvestmentFormIntegrated()
+  const form = useAddInvestmentForm()
   const modals = useModalState()
-
-
 
   return (
     <main className="min-h-screen bg-surface">
@@ -52,6 +49,7 @@ export default function AddInvestmentPage() {
         {/* 입력 폼 */}
         <FormSection form={form} modals={modals} />
 
+        {/* 미리보기 섹션 */}
         <PreviewSection
           stockName={form.stockName}
           monthlyAmount={form.monthlyAmount}
@@ -89,6 +87,7 @@ export default function AddInvestmentPage() {
         />
       )}
       
+      {/* 수동 입력 모달 */}
       <ManualInputModal
         isOpen={form.isManualModalOpen}
         onClose={form.closeAndResetManual}
@@ -112,6 +111,7 @@ export default function AddInvestmentPage() {
         onRateHelpClick={() => modals.setIsRateHelpModalOpen(true)}
       />
 
+      {/* 수익률 도움말 모달 */}
       <RateHelpModal
         isOpen={modals.isRateHelpModalOpen}
         onClose={() => modals.setIsRateHelpModalOpen(false)}

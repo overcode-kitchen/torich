@@ -1,0 +1,8 @@
+
+# <type>(<scope>): <subject>
+#
+# - <body line 1>
+# - <body line 2>
+#
+# types: feat, fix, refactor, style, docs, test, chore
+# example: feat(ui): 투자 정보 화면 개선
