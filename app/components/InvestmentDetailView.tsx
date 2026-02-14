@@ -148,11 +148,11 @@ function InternalInvestmentDetailView({
           <div className="flex items-center -mr-1">
             <button
               type="button"
-              onClick={toggleNotification}
+              onClick={investmentData.toggleNotification}
               className="p-2 text-foreground hover:text-foreground transition-colors"
-              aria-label={notificationOn ? '알림 끄기' : '알림 켜기'}
+              aria-label={investmentData.notificationOn ? '알림 끄기' : '알림 켜기'}
             >
-              {notificationOn ? (
+              {investmentData.notificationOn ? (
                 <Bell className="w-6 h-6" weight="regular" />
               ) : (
                 <BellSlash className="w-6 h-6 text-muted-foreground" weight="regular" />
@@ -197,7 +197,7 @@ function InternalInvestmentDetailView({
                 {isEditMode ? (
                   <p className="text-sm text-foreground-subtle">종목명은 수정할 수 없습니다</p>
                 ) : (
-                  completed && (
+                  investmentData.completed && (
                     <p className="text-sm font-medium text-green-600">
                       목표 달성! 🎉
                     </p>
@@ -243,7 +243,7 @@ function InternalInvestmentDetailView({
                   </button>
                 </div>
               </div>
-              {!isEditMode && nextPaymentDate && (
+              {!isEditMode && investmentData.nextPaymentDate && (
                 <Alert className="mt-1 border-none bg-primary/10 text-foreground px-4 py-3 rounded-2xl">
                   <CalendarBlank className="w-5 h-5 text-primary" />
                   <div className="flex items-baseline justify-between gap-4 col-start-2 w-full">
@@ -252,7 +252,7 @@ function InternalInvestmentDetailView({
                         다음 투자일
                       </AlertTitle>
                       <AlertDescription className="mt-0.5 text-base font-semibold text-primary">
-                        {formatNextPaymentDate(nextPaymentDate)}
+                        {formatNextPaymentDate(investmentData.nextPaymentDate)}
                       </AlertDescription>
                     </div>
                   </div>
@@ -263,10 +263,10 @@ function InternalInvestmentDetailView({
         {/* 진행률 - 수정 모드에서는 숨김 */}
         {!isEditMode && (
           <ProgressSection
-            progress={progress}
-            completed={completed}
-            startDate={startDate}
-            endDate={endDate}
+            progress={investmentData.progress}
+            completed={investmentData.completed}
+            startDate={investmentData.startDate}
+            endDate={investmentData.endDate}
           />
         )}
 
@@ -274,14 +274,14 @@ function InternalInvestmentDetailView({
           <InfoSection
             item={item}
             isEditMode={isEditMode}
-            editMonthlyAmount={editMonthlyAmount}
-            editPeriodYears={editPeriodYears}
-            editAnnualRate={editAnnualRate}
-            editInvestmentDays={editInvestmentDays}
-            setEditMonthlyAmount={setEditMonthlyAmount}
-            setEditPeriodYears={setEditPeriodYears}
-            setEditAnnualRate={setEditAnnualRate}
-            setEditInvestmentDays={setEditInvestmentDays}
+            editMonthlyAmount={investmentData.editMonthlyAmount}
+            editPeriodYears={investmentData.editPeriodYears}
+            editAnnualRate={investmentData.editAnnualRate}
+            editInvestmentDays={investmentData.editInvestmentDays}
+            setEditMonthlyAmount={investmentData.setEditMonthlyAmount}
+            setEditPeriodYears={investmentData.setEditPeriodYears}
+            setEditAnnualRate={investmentData.setEditAnnualRate}
+            setEditInvestmentDays={investmentData.setEditInvestmentDays}
             setIsDaysPickerOpen={setIsDaysPickerOpen}
             handleNumericInput={investmentData.handleNumericInput}
             handleRateInput={investmentData.handleRateInput}
